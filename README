@@ -1,0 +1,15 @@
+In-kernel key-value storage system prototype
+LKP Project 06
+---------------
+
+The "kernel" folder contains all kernel code, in the form of a module. That 
+code can be divided into two parts: the module core functions (in "core.h"
+and "core.h") containing the storage system initialization and exit functions,
+as well as the implementation of the storage system algorithms. In "device.c"
+and "device.h", the code related to the virtual device management is located.
+
+The "user" folder contains all userspace related code. "kvlib.c" and "kvlib.h"
+are the sources of the library with wich you must compile the program that 
+needs to access the storage system. "testbench.c" is an example of such a 
+program containing a set of test cases.
+
