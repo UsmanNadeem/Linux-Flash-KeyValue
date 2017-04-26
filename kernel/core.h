@@ -35,7 +35,7 @@ typedef struct {
 	page_state *pages_states;
 } blk_info;
 
-// mapping and state for a single key
+// mapping and state for a single key todo: convert to fixed size hash
 typedef struct {
 	unsigned int* keySize;  // we need size to read correct amount of bytes for the key string
 	char* key;
