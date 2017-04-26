@@ -118,7 +118,7 @@ int init_config(int mtd_index)
 int init_scan()
 {
 	int i, j;
-	char *buffer;
+	char *buffer;  // size of a page
 
 	buffer = (char *)vmalloc(config.page_size * sizeof(char));
 

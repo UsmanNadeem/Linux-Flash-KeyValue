@@ -20,12 +20,33 @@ typedef enum {
 	PG_VALID
 } page_state;
 
+/* state for a key: valid or deleted */
+typedef enum {
+	PG_DELETED,
+	PG_VALID
+} key_state;
+
 /* data structure containing the state of a flash block and the state of the 
  * flash pages it contains */
 typedef struct {
 	blk_state state;
+	unsigned long long int wipeCount;
 	page_state *pages_states;
 } blk_info;
+
+// mapping and state for a single key
+typedef struct {
+	char* key;
+	int block;
+	key_state state;	// if deleted we can overwrite the directory_entry with another key
+	int page_offset;
+} directory_entry;
+
+// list of keys
+typedef struct {
+	directory_entry* list;	// todo size == MAX_numkeys == Total numPages
+							// can be converted to a list
+} directory;
 
 /* global attributes for our system */
 typedef struct {
@@ -41,6 +62,8 @@ typedef struct {
 	int format_done;	/* used during format operation */
 	int read_only;		/* are we in read-only mode? */
 	struct semaphore format_lock;	/* used during the format operation */
+
+	directory dir;	/* mapping from key to block */
 
 } lkp_kv_cfg;
 
