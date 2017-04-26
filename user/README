@@ -1,0 +1,11 @@
+To launch the test application:
+
+1. Launch the nandsim flash simulator using:
+./launch_flash_simulator.sh
+
+2. Insert the storage system module (the module .ko file must be in the 
+local directory:
+./insert_mod.sh
+
+3. Launch the test application:
+./testbnch.sh
