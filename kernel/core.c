@@ -183,6 +183,22 @@ void destroy_config(void)
 	vfree(config.blocks);
 }
 
+
+// hash function taken from 
+// Linux/net/irda/irqueue.c
+static __u32 hash( const char* name) {
+    __u32 h = 0;
+    __u32 g;
+ 
+    while(*name) {
+        h = (h<<4) + *name++;
+        if ((g = (h & 0xf0000000)))
+            h ^=g>>24;
+            h &=~g;
+        }
+    return h;
+}
+
 /**
  * Adding a key-value couple. Returns -1 when ok and a negative value on error:
  * -1 when the size to write is too big
@@ -195,6 +211,7 @@ int set_keyval(const char *key, const char *val)
 	int key_len, val_len, i, ret;
 	char *buffer;
 	directory_entry* dirToAdd;
+	__u32 _hash = hash(key);
 
 	key_len = strlen(key);
 	val_len = strlen(val);
@@ -207,7 +224,7 @@ int set_keyval(const char *key, const char *val)
 
 	//  Check for a directory entry with the same key
 	for (i = 0; i < config.MAX_KEYS; ++i) {
-		if (!strcmp(config.dir.list[i]->key, key)) {
+		if (config.dir.list[i]->keyHash == _hash) {
 
 			if (config.dir.list[i]->key_state == KEY_DELETED) {
 				dirToAdd = config.dir.list[i];
@@ -235,6 +252,9 @@ int set_keyval(const char *key, const char *val)
 
 	// no free space
 	if (dirToAdd == NULL) {
+		printk(PRINT_PREF
+		       "no free block left... switching to read-only mode\n");
+		config.read_only = 1;
 		return -3;  // readonly mode
 	}
 
@@ -273,6 +293,8 @@ int set_keyval(const char *key, const char *val)
 	memcpy(dirToAdd.key, key, key_len);
 	dirToAdd.keySize = key_len;
 	dirToAdd.state = KEY_VALID;
+	dirToAdd.block = config.current_block;
+	dirToAdd.page_offset = config.current_page_offset;
 
 	return 0;
 }
@@ -359,7 +381,9 @@ int get_next_page_index_to_write()
 			return -1;
 
 		config.blocks[config.current_block].state = BLK_USED;
-		config.current_page_offset = 0;
+	
+		if (config.current_page_offset == config.block_size / config.page_size)
+			config.current_page_offset = 0;
 	}
 	return config.current_page_offset;
 }
@@ -372,11 +396,18 @@ int get_next_free_block()
 {
 	int i;
 
-	for (i = 0; i < config.nb_blocks; i++)
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
 		if (config.blocks[i].state == BLK_FREE)
 			return i;
 
 	/* If we get there, no free block left... */
+
+	// todo set config.current_page_offset if 
+		// the the block is partially empty
+	garbageColect();
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
+		if (config.blocks[i].state == BLK_FREE)
+			return i;
 
 	return -1;
 }
