@@ -17,13 +17,14 @@ typedef enum {
 /* state for a flash page: used or free */
 typedef enum {
 	PG_FREE,
-	PG_VALID
+	PG_VALID,
+	PG_DELETED
 } page_state;
 
 /* state for a key: valid or deleted */
 typedef enum {
-	PG_DELETED,
-	PG_VALID
+	KEY_DELETED,
+	KEY_VALID
 } key_state;
 
 /* data structure containing the state of a flash block and the state of the 
@@ -36,9 +37,11 @@ typedef struct {
 
 // mapping and state for a single key
 typedef struct {
+	unsigned int* keySize;  // we need size to read correct amount of bytes for the key string
 	char* key;
 	int block;
-	key_state state;	// if deleted we can overwrite the directory_entry with another key
+	key_state state;	// if deleted we can overwrite the directory_entry list index with another key.
+						// we can only have a limited number of keys.
 	int page_offset;
 } directory_entry;
 
