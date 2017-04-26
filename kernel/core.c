@@ -23,7 +23,7 @@ void format_callback(struct erase_info *e);
 int get_next_page_index_to_write(void);
 int get_next_free_block(void);
 int init_scan(void);
-void delete(directory_entry* a);
+int delete(directory_entry* a);
 void writeFSMetadata(void);
 
 lkp_kv_cfg config;
@@ -361,6 +361,40 @@ int get_keyval(const char *key, char *val)
     vfree(buffer);
     return -1;
 }
+
+/**
+ * Delete a Key-Value pair 
+ * Returns 0 on success, -1 if key does not exist.
+ */
+int del_keyval(const char *key)
+{
+    int i;
+    __u32 _hash = hash(key); 
+
+    for (i = 0; i < config.MAX_KEYS; ++i) {
+        if (config.dir.list[i].keyHash == _hash) {
+            if (config.dir.list[i].state == KEY_VALID) {
+                /* Valid key found */
+                return delete(&config.dir.list[i]);
+            }  
+        }
+    }
+    return -1;
+}
+
+/**
+ * Sets metadata info of entry to deleted
+ * Returns -1 if invalid entry
+ */
+int delete(directory_entry *entry)
+{
+    if (!entry) 
+        return -1;
+    entry->state = KEY_DELETED;
+    config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
+    return 0;
+}
+
 
 /**
  * After an insertion, determine which is the flash page that will receive the 
