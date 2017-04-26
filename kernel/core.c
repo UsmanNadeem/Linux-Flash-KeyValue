@@ -308,31 +308,31 @@ int set_keyval(const char *key, const char *val)
  */
 int get_keyval(const char *key, char *val)
 {
-	int i, j;
+	int i;
 	char *buffer;
 	uint64_t address;
-	directory_entry* entry = NULL;
+	directory_entry *entry = NULL;
     int page_index;
     int key_len, val_len;
     char *cur_key, *cur_val;
-
+    __u32 _hash = hash(key);    /* Compute hash for the key */
 
 	buffer = (char *)vmalloc(config.page_size * sizeof(char));
 
 	/*  Search for key in dictionary entry */
     for (i = 0; i < config.MAX_KEYS; ++i) {
-        if (!strcmp(config.dir.list[i].key, key)) {
+        if (config.dir.list[i].keyHash == _hash) {
 		/* Key found. Check if the entry is valid */
 		    if (config.dir.list[i].state == KEY_VALID) {
                 printk(PRINT_PREF "Key \"%s\" found\n", key);
-                entry = config.dir.list[i];
+                entry = &config.dir.list[i];
                 break;
 		    }
 		}
     }
 
 	if (entry) {
-        page_index = (entry.block * config.pages_per_block) + entry.page_offset;
+        page_index = (entry->block * config.pages_per_block) + entry->page_offset;
         address = ((uint64_t) page_index) * ((uint64_t) config.page_size);
 
         /* read page */
@@ -350,7 +350,7 @@ int get_keyval(const char *key, char *val)
 			cur_val = buffer + 2 * sizeof(int) + key_len;
 			if (!strncmp(cur_key, key, strlen(key))) {
 				/* key on the page is same as input key. Read value */
-				memcpy(val, read_val, val_len);
+				memcpy(val, cur_val, val_len);
 			    val[val_len] = '\0';
 				vfree(buffer);
 				return page_index;
