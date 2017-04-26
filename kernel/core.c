@@ -23,6 +23,8 @@ void format_callback(struct erase_info *e);
 int get_next_page_index_to_write(void);
 int get_next_free_block(void);
 int init_scan(void);
+void delete(directory_entry* a);
+void writeFSMetadata(void);
 
 lkp_kv_cfg config;
 
@@ -224,16 +226,15 @@ int set_keyval(const char *key, const char *val)
 
 	//  Check for a directory entry with the same key
 	for (i = 0; i < config.MAX_KEYS; ++i) {
-		if (config.dir.list[i]->keyHash == _hash) {
+		if (config.dir.list[i].keyHash == _hash) {
 
-			if (config.dir.list[i]->key_state == KEY_DELETED) {
-				dirToAdd = config.dir.list[i];
+			if (config.dir.list[i].state == KEY_DELETED) {
+				dirToAdd = &(config.dir.list[i]);
 				break;
-			} else if (config.dir.list[i]->key_state == KEY_VALID) {
-				printk(PRINT_PREF "Key \"%s\" already exists in page %d Updating it\n", key,
-		       ret);
-				delete(config.dir.list[i]);
-				dirToAdd = config.dir.list[i];
+			} else if (config.dir.list[i].state == KEY_VALID) {
+				printk(PRINT_PREF "Key \"%s\" already exists Updating it\n", key);
+				delete(&(config.dir.list[i]));
+				dirToAdd = &(config.dir.list[i]);
 				break;
 			}
 		}
@@ -243,8 +244,8 @@ int set_keyval(const char *key, const char *val)
 	if (dirToAdd == NULL) {
 		// choose the first invalid directory entry pointer
 		for (i = 0; i < config.MAX_KEYS; ++i) {
-			if (config.dir.list[i]->key_state == KEY_DELETED) {
-				dirToAdd = config.dir.list[i];
+			if (config.dir.list[i].state == KEY_DELETED) {
+				dirToAdd = &(config.dir.list[i]);
 				break;
 			}
 		}
@@ -290,11 +291,10 @@ int set_keyval(const char *key, const char *val)
 
 
 	// successfully written. Update directory metadata.
-	memcpy(dirToAdd.key, key, key_len);
-	dirToAdd.keySize = key_len;
-	dirToAdd.state = KEY_VALID;
-	dirToAdd.block = config.current_block;
-	dirToAdd.page_offset = config.current_page_offset;
+	dirToAdd->keyHash = _hash;
+	dirToAdd->state = KEY_VALID;
+	dirToAdd->block = config.current_block;
+	dirToAdd->page_offset = config.current_page_offset;
 
 	return 0;
 }
@@ -403,7 +403,7 @@ int get_next_free_block()
 
 	// todo set config.current_page_offset if 
 		// the the block is partially empty
-	garbageColect();
+	// todo garbageColect();
 	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
 		if (config.blocks[i].state == BLK_FREE)
 			return i;
@@ -545,6 +545,79 @@ int read_page(int page_index, char *buf)
 	return config.mtd->_read(config.mtd, addr, config.page_size, &retlen,
 				 buf);
 }
+
+
+void writeFSMetadata(void) {
+	uint64_t addr;
+	size_t retlen;
+	char *buffer;
+	int numPages = 0;
+	uint64_t size = 0;
+	uint64_t j = 0;
+	int i = 0;
+	int k = 0;
+
+	size+= sizeof(lkp_kv_cfg);
+	size+= sizeof(blk_info)* config.nb_blocks;
+	size+= sizeof(page_state) * config.nb_blocks * 
+		config.pages_per_block;
+	size+= sizeof(directory_entry) * config.MAX_KEYS;
+
+	for (j = 0; j < size;) {
+		j += config.page_size;
+		numPages += 1;
+	}
+
+	buffer = (char *)vmalloc(config.page_size * numPages);
+	for (i = 0; i < config.page_size * numPages; i++)
+		buffer[i] = 0x0;
+
+
+	// Copy data to buffer
+
+	memcpy(buffer, &config, sizeof(lkp_kv_cfg));
+
+	for (i = 0; i < config.nb_blocks; ++i) {
+		
+		memcpy(buffer + sizeof(lkp_kv_cfg) 
+			+ (i*sizeof(blk_info))
+			+ (i*config.pages_per_block*sizeof(page_state))
+			, &(config.blocks[i]), sizeof(blk_info));
+		
+		for (k = 0; k < config.pages_per_block; ++k) {
+			
+			memcpy(buffer + sizeof(lkp_kv_cfg) 
+				+ ((i+1)*sizeof(blk_info))
+				+ (i*config.pages_per_block*sizeof(page_state))
+				+ (k*sizeof(page_state))
+				, &(config.blocks[i].pages_states[k]),
+			 sizeof(page_state));
+		
+		}
+	}
+
+	for (i = 0; i < config.MAX_KEYS; ++i) {
+
+		memcpy(buffer + sizeof(lkp_kv_cfg) 
+			+ (config.nb_blocks*sizeof(blk_info))
+			+ (config.nb_blocks*config.pages_per_block*sizeof(page_state))
+			, &(config.dir.list[i]), sizeof(directory_entry));
+	}
+
+	for (i = 0; i < numPages; ++i) {
+		addr = ((uint64_t) i) * ((uint64_t) config.page_size);
+		if (config.mtd->
+		    _write(config.mtd, addr, config.page_size, &retlen, buffer + addr) != 0) {
+
+				printk(PRINT_PREF "Error writing metadata\n");
+				vfree(buffer);
+				return;
+		}
+	}
+
+	vfree(buffer);
+}
+
 
 /**
  * Print some statistics on the kernel log
