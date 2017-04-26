@@ -38,7 +38,7 @@ typedef struct {
 
 // mapping and state for a single key todo: convert to fixed size hash
 typedef struct {
-	unsigned int* keySize;  // we need size to read correct amount of bytes for the key string
+	unsigned int keySize;  // we need size to read correct amount of bytes for the key string
 	char* key;
 	int block;
 	key_state state;	// if deleted we can overwrite the directory_entry list index with another key.
