@@ -235,6 +235,9 @@ int set_keyval(const char *key, const char *val)
 
 	// no free space
 	if (dirToAdd == NULL) {
+		printk(PRINT_PREF
+		       "no free block left... switching to read-only mode\n");
+		config.read_only = 1;
 		return -3;  // readonly mode
 	}
 
@@ -273,6 +276,8 @@ int set_keyval(const char *key, const char *val)
 	memcpy(dirToAdd.key, key, key_len);
 	dirToAdd.keySize = key_len;
 	dirToAdd.state = KEY_VALID;
+	dirToAdd.block = config.current_block;
+	dirToAdd.page_offset = config.current_page_offset;
 
 	return 0;
 }
@@ -358,7 +363,9 @@ int get_next_page_index_to_write()
 			return -1;
 
 		config.blocks[config.current_block].state = BLK_USED;
-		config.current_page_offset = 0;
+	
+		if (config.current_page_offset == config.block_size / config.page_size)
+			config.current_page_offset = 0;
 	}
 	return config.current_page_offset;
 }
@@ -371,11 +378,18 @@ int get_next_free_block()
 {
 	int i;
 
-	for (i = 0; i < config.nb_blocks; i++)
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
 		if (config.blocks[i].state == BLK_FREE)
 			return i;
 
 	/* If we get there, no free block left... */
+
+	// todo set config.current_page_offset if 
+		// the the block is partially empty
+	garbageColect();
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
+		if (config.blocks[i].state == BLK_FREE)
+			return i;
 
 	return -1;
 }
