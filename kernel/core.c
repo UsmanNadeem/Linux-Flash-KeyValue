@@ -183,6 +183,22 @@ void destroy_config(void)
 	vfree(config.blocks);
 }
 
+
+// hash function taken from 
+// Linux/net/irda/irqueue.c
+static __u32 hash( const char* name) {
+    __u32 h = 0;
+    __u32 g;
+ 
+    while(*name) {
+        h = (h<<4) + *name++;
+        if ((g = (h & 0xf0000000)))
+            h ^=g>>24;
+            h &=~g;
+        }
+    return h;
+}
+
 /**
  * Adding a key-value couple. Returns -1 when ok and a negative value on error:
  * -1 when the size to write is too big
@@ -195,6 +211,7 @@ int set_keyval(const char *key, const char *val)
 	int key_len, val_len, i, ret;
 	char *buffer;
 	directory_entry* dirToAdd;
+	__u32 _hash = hash(key);
 
 	key_len = strlen(key);
 	val_len = strlen(val);
@@ -207,7 +224,7 @@ int set_keyval(const char *key, const char *val)
 
 	//  Check for a directory entry with the same key
 	for (i = 0; i < config.MAX_KEYS; ++i) {
-		if (!strcmp(config.dir.list[i]->key, key)) {
+		if (config.dir.list[i]->keyHash == _hash) {
 
 			if (config.dir.list[i]->key_state == KEY_DELETED) {
 				dirToAdd = config.dir.list[i];
