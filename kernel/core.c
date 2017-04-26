@@ -310,55 +310,56 @@ int get_keyval(const char *key, char *val)
 {
 	int i, j;
 	char *buffer;
+	uint64_t address;
+	directory_entry* entry = NULL;
+    int page_index;
+    int key_len, val_len;
+    char *cur_key, *cur_val;
+
 
 	buffer = (char *)vmalloc(config.page_size * sizeof(char));
 
-	/* read the entirety of valid flash pages until we found the requested key */
-	for (i = 0; i < config.nb_blocks; i++)
-		if (config.blocks[i].state == BLK_USED)
-			for (j = 0; j < config.pages_per_block; j++)
-				if (config.blocks[i].pages_states[j] ==
-				    PG_VALID) {
-					int key_len, val_len;
-					char *cur_key, *cur_val;
+	/*  Search for key in dictionary entry */
+    for (i = 0; i < config.MAX_KEYS; ++i) {
+        if (!strcmp(config.dir.list[i].key, key)) {
+		/* Key found. Check if the entry is valid */
+		    if (config.dir.list[i].state == KEY_VALID) {
+                printk(PRINT_PREF "Key \"%s\" found\n", key);
+                entry = config.dir.list[i];
+                break;
+		    }
+		}
+    }
 
-					/* flash read */
-					if (read_page
-					    (i * config.pages_per_block + j,
-					     buffer) != 0) {
-						vfree(buffer);
-						return -2;
-					}
+	if (entry) {
+        page_index = (entry.block * config.pages_per_block) + entry.page_offset;
+        address = ((uint64_t) page_index) * ((uint64_t) config.page_size);
 
-					/* get the key and value */
-					memcpy(&key_len, buffer, sizeof(int));
-					memcpy(&val_len, buffer + sizeof(int),
-					       sizeof(int));
+        /* read page */
+        if (read_page(address, buffer) != 0) {
+			vfree(buffer);
+			return -2;
+		}
+        
+        memcpy(&key_len, buffer, sizeof(int));
+        memcpy(&val_len, buffer + sizeof(int), sizeof(int));
+       
+        /* TODO: These checks are not necessary.*/
+		if (key_len != 0xFFFFFFFF) {	/* shoud always be true */
+			cur_key = buffer + 2 * sizeof(int);
+			cur_val = buffer + 2 * sizeof(int) + key_len;
+			if (!strncmp(cur_key, key, strlen(key))) {
+				/* key on the page is same as input key. Read value */
+				memcpy(val, read_val, val_len);
+			    val[val_len] = '\0';
+				vfree(buffer);
+				return page_index;
+			}
+		}
+    }
 
-					if (key_len != 0xFFFFFFFF) {	/* shoud always be true */
-						cur_key =
-						    buffer + 2 * sizeof(int);
-						cur_val =
-						    buffer + 2 * sizeof(int) +
-						    key_len;
-						if (!strncmp
-						    (cur_key, key,
-						     strlen(key))) {
-							/* key found */
-							memcpy(val, cur_val,
-							       val_len);
-							val[val_len] = '\0';
-							vfree(buffer);
-							return i *
-							    config.
-							    pages_per_block + j;
-						}
-					}
-				}
-
-	/* key not found */
-	vfree(buffer);
-	return -1;
+    vfree(buffer);
+    return -1;
 }
 
 /**
