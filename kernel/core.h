@@ -36,10 +36,9 @@ typedef struct {
 	page_state *pages_states;
 } blk_info;
 
-// mapping and state for a single key todo: convert to fixed size hash
+// mapping and state for a single key 
 typedef struct {
-	unsigned int* keySize;  // we need size to read correct amount of bytes for the key string
-	char* key;
+	__u32 keyHash; 
 	int block;
 	key_state state;	// if deleted we can overwrite the directory_entry list index with another key.
 						// we can only have a limited number of keys.
