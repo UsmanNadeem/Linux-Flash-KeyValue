@@ -194,26 +194,54 @@ int set_keyval(const char *key, const char *val)
 {
 	int key_len, val_len, i, ret;
 	char *buffer;
+	directory_entry* dirToAdd;
 
 	key_len = strlen(key);
 	val_len = strlen(val);
+	dirToAdd = NULL;
 
 	if ((key_len + val_len + 2 * sizeof(int)) > config.page_size) {
 		/* size to write is too big */
 		return -1;
 	}
 
+	//  Check for a directory entry with the same key
+	for (i = 0; i < config.MAX_KEYS; ++i) {
+		if (!strcmp(config.dir.list[i]->key, key)) {
+
+			if (config.dir.list[i]->key_state == KEY_DELETED) {
+				dirToAdd = config.dir.list[i];
+				break;
+			} else if (config.dir.list[i]->key_state == KEY_VALID) {
+				printk(PRINT_PREF "Key \"%s\" already exists in page %d Updating it\n", key,
+		       ret);
+				delete(config.dir.list[i]);
+				dirToAdd = config.dir.list[i];
+				break;
+			}
+		}
+	}
+
+	// directory entry not found
+	if (dirToAdd == NULL) {
+		// choose the first invalid directory entry pointer
+		for (i = 0; i < config.MAX_KEYS; ++i) {
+			if (config.dir.list[i]->key_state == KEY_DELETED) {
+				dirToAdd = config.dir.list[i];
+				break;
+			}
+		}
+	}
+
+	// no free space
+	if (dirToAdd == NULL) {
+		return -3;  // readonly mode
+	}
+
 	/* the buffer that we are going to write on flash */
 	buffer = (char *)vmalloc(config.page_size * sizeof(char));
 
-	/* if the key already exists, return without writing anything to flash */
-	ret = get_keyval(key, buffer);
-	if (ret >= 0) {
-		printk(PRINT_PREF "Key \"%s\" already exists in page %d\n", key,
-		       ret);
-		vfree(buffer);
-		return -2;
-	}
+
 
 	/* prepare the buffer we are going to write on flash */
 	for (i = 0; i < config.page_size; i++)
@@ -239,6 +267,12 @@ int set_keyval(const char *key, const char *val)
 		return -3;
 	else if (ret == -2)	/* write error */
 		return -4;
+
+
+	// successfully written. Update directory metadata.
+	memcpy(dirToAdd.key, key, key_len);
+	dirToAdd.keySize = key_len;
+	dirToAdd.state = KEY_VALID;
 
 	return 0;
 }
