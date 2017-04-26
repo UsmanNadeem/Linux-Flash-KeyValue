@@ -25,6 +25,7 @@ int get_next_free_block(void);
 int init_scan(void);
 int delete(directory_entry* a);
 void writeFSMetadata(void);
+directory_entry *key_exists(const char *key);
 
 lkp_kv_cfg config;
 
@@ -393,6 +394,41 @@ int delete(directory_entry *entry)
     entry->state = KEY_DELETED;
     config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
     return 0;
+}
+
+/**
+ * Update a Key-Value pair
+ * -1 when the size to write is too big
+ * -2 when the key already exists
+ * -3 when we are in read-only mode
+ * -4 when the MTD driver returns an error
+ * -5 when the key does not exist
+ */
+int update_keyval(const char *key, const char *val)
+{
+    directory_entry *entry = key_exists(key);
+    if (entry) {
+        delete(entry);
+        return set_keyval(key, val);
+    }
+    return -5;
+}
+
+/**
+ * Checks whether key exists in the metadata.
+ * Returns the entry if key exists, otherwise returns NULL
+ */
+directory_entry *key_exists(const char *key)
+{
+    int i;
+    __u32 _hash = hash(key);
+     
+    for (i = 0; i < config.MAX_KEYS; ++i)
+        if (config.dir.list[i].keyHash == _hash)
+            if (config.dir.list[i].state == KEY_VALID) 
+                return &(config.dir.list[i]);
+
+    return NULL;
 }
 
 
