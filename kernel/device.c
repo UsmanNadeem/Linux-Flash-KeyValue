@@ -178,6 +178,34 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num,
         /* update operation */
     case IOCTL_UPDATE:
         {
+            int ret = 0;
+            int err_bytes_copied = 0;
+            char *key, *val;
+            keyval kv;
+
+            /* read keyval struct from userspace*/
+            err_bytes_copied = copy_from_user(&kv, (void *)ioctl_param, 
+                    sizeof(keyval));
+            
+            /* read key and value */
+            key = (char *)vmalloc((kv.key_len + 1) * sizeof(char));
+            val = (char *)vmalloc((kv.val_len + 1) * sizeof(char));
+
+            err_bytes_copied += copy_from_user(key, kv.key, kv.key_len + 1);
+            err_bytes_copied += copy_from_user(val, kv.val, kv.val_len + 1);
+            
+            if (!err_bytes_copied)
+                ret = update_keyval(key, val);
+            else
+                return -5;  /* user/kernel space mem transfer error */ 
+            
+            /* copy ret code to userspace */
+            put_user(ret, (int *)&(((keyval *) ioctl_param)->status));
+
+            /*free buffers*/
+            vfree(key);
+            vfree(val);
+            
             break;
         }
 

@@ -399,19 +399,20 @@ int delete(directory_entry *entry)
 /**
  * Update a Key-Value pair
  * -1 when the size to write is too big
- * -2 when the key already exists
+ * -2 when the key does not exist
  * -3 when we are in read-only mode
  * -4 when the MTD driver returns an error
- * -5 when the key does not exist
  */
 int update_keyval(const char *key, const char *val)
 {
+    int ret = 0;
     directory_entry *entry = key_exists(key);
     if (entry) {
         delete(entry);
-        return set_keyval(key, val);
+        ret = set_keyval(key, val);
+        WARN_ON(ret != 2);
     }
-    return -5;
+    return -2;
 }
 
 /**

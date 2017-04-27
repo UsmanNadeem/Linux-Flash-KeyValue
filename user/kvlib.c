@@ -5,6 +5,8 @@
  * module through the virtual device
  */
 
+/* FIXME: RO mode ret code for set_keycal and get_keyval */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -190,3 +192,65 @@ int kvlib_del(const char *key)
     
     return ret;
 }
+
+
+/**
+ * Called by a process to update a key/value pair
+ * Returns:
+ * 0 on success
+ * -1 on error when opening the virtual device file
+ * -2 on IOCTL error
+ * -3 if size(key + value) > flash page size
+ * -4 if key does not exist
+ * -5 when the storage system is in read-only mode
+ * -6 on MTD write error
+ * -7 on userspace/kernel space memory transfer error
+ */
+int kvlib_update(const char *key, const char *value)
+{
+	int fd;
+	int ret = 0;
+	keyval kv;
+
+	/* open virtual device file */
+	fd = open(DEVICE_NAME, 0);
+	if (fd < 0)
+		return -1;
+	
+	/* prepare the keyval structure */
+	kv.key = (char *)malloc((strlen(key) + 1) * sizeof(char));
+	kv.val = (char *)malloc((strlen(value) + 1) * sizeof(char));
+	sprintf(kv.key, "%s", key);
+	sprintf(kv.val, "%s", value);
+
+	kv.key_len = strlen(key);
+	kv.val_len = strlen(value);
+
+	/* send ioctl command */
+	if (ioctl(fd, IOCTL_UPDATE, &kv) != 0) {
+		return -2; /* ioctl error */
+	} else {
+		/* get the return code */
+		if (kv.status == -1) {
+			ret = -3; /* size to write too big */
+		} else if (kv.status == -2) {
+			ret = -4; /* key does not exist */
+		} else if (kv.status == -3) {
+			ret = -5; /* system in RO mode */
+		} else if (kv.status == -4) {
+			ret = -6; /* MTD write error */
+		} else if (kv.status == -5) {
+            ret = -7; /* mem transfer error */
+        }
+	}
+
+	/* cleanup */
+	free(kv.key);
+	free(kv.val);
+
+	/* close virtual device file */
+	close(fd);
+	return ret;
+}
+
+

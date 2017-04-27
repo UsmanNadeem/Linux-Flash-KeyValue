@@ -15,6 +15,9 @@ int kvlib_get(const char *key, char *value);
 /* delete a key */
 int kvlib_del(const char *key);
 
+/* update a key/value pair */
+int kvlib_update(const char *key, const char *val);
+
 /* fomat */
 int kvlib_format();
 

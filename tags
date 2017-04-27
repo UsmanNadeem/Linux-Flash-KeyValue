@@ -1,0 +1,101 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ARCH	kernel/Makefile	/^ARCH=x86_64$/;"	m
+BLK_FREE	kernel/core.h	/^	BLK_FREE,$/;"	e	enum:__anon1
+BLK_USED	kernel/core.h	/^	BLK_USED$/;"	e	enum:__anon1
+CC	user/Makefile	/^CC=gcc$/;"	m
+CFLAGS	user/Makefile	/^CFLAGS=-Wall -Werror$/;"	m
+DEVICE_NAME	kernel/device.h	14;"	d
+Fops	kernel/device.c	/^struct file_operations Fops = {$/;"	v	typeref:struct:file_operations
+IOCTL_FORMAT	kernel/device.h	37;"	d
+IOCTL_GET	kernel/device.h	35;"	d
+IOCTL_SET	kernel/device.h	36;"	d
+KERN_DIR	kernel/Makefile	/^KERN_DIR=~\/Desktop\/VM\/linux-4.0.9$/;"	m
+KEY_DELETED	kernel/core.h	/^	KEY_DELETED,$/;"	e	enum:__anon3
+KEY_VALID	kernel/core.h	/^	KEY_VALID$/;"	e	enum:__anon3
+KVLIB_H	user/kvlib.h	7;"	d
+LDFLAGS	user/Makefile	/^LDFLAGS=$/;"	m
+LKP_KV_DEVICE_H	kernel/device.h	6;"	d
+LKP_KV_H	kernel/core.h	6;"	d
+MAJOR_NUM	kernel/device.h	11;"	d
+MAX_KEYS	kernel/core.h	/^	unsigned long long int MAX_KEYS;$/;"	m	struct:__anon7
+MTD_INDEX	kernel/core.c	/^int MTD_INDEX = -1;$/;"	v
+PG_DELETED	kernel/core.h	/^	PG_DELETED$/;"	e	enum:__anon2
+PG_FREE	kernel/core.h	/^	PG_FREE,$/;"	e	enum:__anon2
+PG_VALID	kernel/core.h	/^	PG_VALID,$/;"	e	enum:__anon2
+PRINT_PREF	kernel/core.c	14;"	d	file:
+TARGET	kernel/Makefile	/^TARGET=root@192.168.53.89:~$/;"	m
+TARGET	user/Makefile	/^TARGET=root@192.168.53.89:~$/;"	m
+blk_info	kernel/core.h	/^} blk_info;$/;"	t	typeref:struct:__anon4
+blk_state	kernel/core.h	/^} blk_state;$/;"	t	typeref:enum:__anon1
+block	kernel/core.h	/^	int block;$/;"	m	struct:__anon5
+block_size	kernel/core.h	/^	int block_size;		\/* flash bock size in bytes *\/$/;"	m	struct:__anon7
+blocks	kernel/core.h	/^	blk_info *blocks;	\/* metadata : flash blocks\/pages state *\/$/;"	m	struct:__anon7
+config	kernel/core.c	/^lkp_kv_cfg config;$/;"	v
+current_block	kernel/core.h	/^	int current_block;	\/* current flash block we write to *\/$/;"	m	struct:__anon7
+current_page_offset	kernel/core.h	/^	int current_page_offset;	\/* index of the next flash page to write in the current block *\/$/;"	m	struct:__anon7
+del_keyval	kernel/core.c	/^int del_keyval(const char *key)$/;"	f
+delete	kernel/core.c	/^int delete(directory_entry *entry)$/;"	f
+destroy_config	kernel/core.c	/^void destroy_config(void)$/;"	f
+device_exit	kernel/device.c	/^void device_exit(void)$/;"	f
+device_init	kernel/device.c	/^int device_init(void)$/;"	f
+device_ioctl	kernel/device.c	/^static long device_ioctl(struct file *file, unsigned int ioctl_num,$/;"	f	file:
+device_open	kernel/device.c	/^static int device_open(struct inode *inode, struct file *file)$/;"	f	file:
+device_release	kernel/device.c	/^static int device_release(struct inode *inode, struct file *file)$/;"	f	file:
+dir	kernel/core.h	/^	directory dir;	\/* mapping from key to block *\/$/;"	m	struct:__anon7
+directory	kernel/core.h	/^} directory;$/;"	t	typeref:struct:__anon6
+directory_entry	kernel/core.h	/^} directory_entry;$/;"	t	typeref:struct:__anon5
+file_is_open	kernel/device.c	/^static atomic_t file_is_open;$/;"	v	file:
+format	kernel/core.c	/^int format()$/;"	f
+format_callback	kernel/core.c	/^void format_callback(struct erase_info *e)$/;"	f
+format_done	kernel/core.h	/^	int format_done;	\/* used during format operation *\/$/;"	m	struct:__anon7
+format_lock	kernel/core.h	/^	struct semaphore format_lock;	\/* used during the format operation *\/$/;"	m	struct:__anon7	typeref:struct:__anon7::semaphore
+get_keyval	kernel/core.c	/^int get_keyval(const char *key, char *val)$/;"	f
+get_next_free_block	kernel/core.c	/^int get_next_free_block()$/;"	f
+get_next_page_index_to_write	kernel/core.c	/^int get_next_page_index_to_write()$/;"	f
+hash	kernel/core.c	/^static __u32 hash( const char* name) {$/;"	f	file:
+init_config	kernel/core.c	/^int init_config(int mtd_index)$/;"	f
+init_scan	kernel/core.c	/^int init_scan()$/;"	f
+key	kernel/device.h	/^	char *key;$/;"	m	struct:__anon8
+keyHash	kernel/core.h	/^	__u32 keyHash; $/;"	m	struct:__anon5
+key_exists	kernel/core.c	/^directory_entry *key_exists(const char *key)$/;"	f
+key_len	kernel/device.h	/^	int key_len;$/;"	m	struct:__anon8
+key_state	kernel/core.h	/^} key_state;$/;"	t	typeref:enum:__anon3
+keyval	kernel/device.h	/^} keyval;$/;"	t	typeref:struct:__anon8
+kvlib_format	user/kvlib.c	/^int kvlib_format()$/;"	f
+kvlib_get	user/kvlib.c	/^int kvlib_get(const char *key, char *value)$/;"	f
+kvlib_set	user/kvlib.c	/^int kvlib_set(const char *key, const char *value)$/;"	f
+list	kernel/core.h	/^	directory_entry* list;	\/\/ todo size == MAX_numkeys == Total numPages$/;"	m	struct:__anon6
+lkp_kv_cfg	kernel/core.h	/^} lkp_kv_cfg;$/;"	t	typeref:struct:__anon7
+lkp_kv_exit	kernel/core.c	/^module_exit(lkp_kv_exit);$/;"	v
+lkp_kv_exit	kernel/core.c	/^static void __exit lkp_kv_exit(void)$/;"	f	file:
+lkp_kv_init	kernel/core.c	/^module_init(lkp_kv_init);$/;"	v
+lkp_kv_init	kernel/core.c	/^static int __init lkp_kv_init(void)$/;"	f	file:
+main	user/testbench.c	/^int main(void)$/;"	f
+metadata_blocks	kernel/core.h	/^	unsigned int metadata_blocks;$/;"	m	struct:__anon7
+mtd	kernel/core.h	/^	struct mtd_info *mtd;	\/* pointer to the used flash partition mtd_info object *\/$/;"	m	struct:__anon7	typeref:struct:__anon7::mtd_info
+mtd_index	kernel/core.h	/^	int mtd_index;		\/* the partition index *\/$/;"	m	struct:__anon7
+nb_blocks	kernel/core.h	/^	int nb_blocks;		\/* amount of managed flash blocks *\/$/;"	m	struct:__anon7
+page_offset	kernel/core.h	/^	int page_offset;$/;"	m	struct:__anon5
+page_size	kernel/core.h	/^	int page_size;		\/* flash page size in bytes *\/$/;"	m	struct:__anon7
+page_state	kernel/core.h	/^} page_state;$/;"	t	typeref:enum:__anon2
+pages_per_block	kernel/core.h	/^	int pages_per_block;	\/* number of flash pages per block *\/$/;"	m	struct:__anon7
+pages_states	kernel/core.h	/^	page_state *pages_states;$/;"	m	struct:__anon4
+print_config	kernel/core.c	/^void print_config()$/;"	f
+prototype-objs	kernel/Makefile	/^prototype-objs := core.o device.o$/;"	m
+read_only	kernel/core.h	/^	int read_only;		\/* are we in read-only mode? *\/$/;"	m	struct:__anon7
+read_page	kernel/core.c	/^int read_page(int page_index, char *buf)$/;"	f
+set_keyval	kernel/core.c	/^int set_keyval(const char *key, const char *val)$/;"	f
+state	kernel/core.h	/^	blk_state state;$/;"	m	struct:__anon4
+state	kernel/core.h	/^	key_state state;	\/\/ if deleted we can overwrite the directory_entry list index with another key.$/;"	m	struct:__anon5
+status	kernel/device.h	/^	int status;$/;"	m	struct:__anon8
+update_keyval	kernel/core.c	/^int update_keyval(const char *key, const char *val)$/;"	f
+val	kernel/device.h	/^	char *val;$/;"	m	struct:__anon8
+val_len	kernel/device.h	/^	int val_len;$/;"	m	struct:__anon8
+wipeCount	kernel/core.h	/^	unsigned long long int wipeCount;$/;"	m	struct:__anon4
+writeFSMetadata	kernel/core.c	/^void writeFSMetadata(void) {$/;"	f
+write_page	kernel/core.c	/^int write_page(int page_index, const char *buf)$/;"	f
