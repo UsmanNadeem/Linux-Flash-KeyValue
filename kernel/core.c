@@ -24,11 +24,13 @@ int get_next_page_index_to_write(void);
 int get_next_free_block(void);
 int init_scan(void);
 int delete(directory_entry* a);
+directory_entry *key_exists(const char *key);
+
+
 void writeFSMetadata(void);
-
-
 int initialize_firsttime(int mtd_index);
 int readFSMetadata(int mtd_index);
+
 
 lkp_kv_cfg config;
 
@@ -135,7 +137,17 @@ int readFSMetadata(int mtd_index) {
 	for (i = 0; i < config.page_size * numPages; i++)
 		buffer[i] = 0x0;
 
-// todo read from disk
+
+    /* read page */
+	for (i = 0; i < numPages; ++i) {
+		uint64_t address = ((uint64_t) i) * ((uint64_t) config.page_size);
+	    if (read_page(address, buffer + address) != 0) {
+			printk(PRINT_PREF "Error in readFSMetadata\n");
+			vfree(buffer);
+			return -1;
+		}
+	}
+
 
 	memcpy(&config, buffer, sizeof(lkp_kv_cfg));
 
@@ -145,7 +157,7 @@ int readFSMetadata(int mtd_index) {
 
 	config.mtd = get_mtd_device(NULL, mtd_index);
 
-	if (config.mtd == NULL)
+	if (config.mtd == NULL || config.nb_blocks != nb_blocks || config.block_size != block_size)
 		return -1;
 
 	config.blocks = (blk_info *) vmalloc((config.nb_blocks) * sizeof(blk_info));
@@ -186,6 +198,7 @@ int readFSMetadata(int mtd_index) {
 
 	size = numDirPages * config.page_size;
 
+	tmp_blk_num = numPages;
 	numPages = 0;
 	for (j = 0; j < size;) {
 		j += config.page_size;
@@ -197,7 +210,16 @@ int readFSMetadata(int mtd_index) {
 		buffer[i] = 0x0;
 
 
-// todo read from disk into buffer
+    /* read page */
+	for (i = 0; i < numPages; ++i) {
+		uint64_t address = ((uint64_t) tmp_blk_num+i) * ((uint64_t) config.page_size);
+		uint64_t baseOffset = ((uint64_t) i) * ((uint64_t) config.page_size);
+	    if (read_page(address, buffer + baseOffset) != 0) {
+			printk(PRINT_PREF "Error in readFSMetadata\n");
+			vfree(buffer);
+			return -1;
+		}
+	}
 
 	config.dir.list = (directory_entry *) vmalloc((MAX_KEYS) * sizeof(directory_entry));
 
