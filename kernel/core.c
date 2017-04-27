@@ -23,8 +23,10 @@ void format_callback(struct erase_info *e);
 int get_next_page_index_to_write(void);
 int get_next_free_block(void);
 int init_scan(void);
-void delete(directory_entry* a);
+int delete(directory_entry* a);
 void writeFSMetadata(void);
+
+
 int initialize_firsttime(int mtd_index);
 int readFSMetadata(int mtd_index);
 
@@ -438,31 +440,31 @@ int set_keyval(const char *key, const char *val)
  */
 int get_keyval(const char *key, char *val)
 {
-	int i, j;
+	int i;
 	char *buffer;
 	uint64_t address;
-	directory_entry* entry = NULL;
+	directory_entry *entry = NULL;
     int page_index;
     int key_len, val_len;
     char *cur_key, *cur_val;
-
+    __u32 _hash = hash(key);    /* Compute hash for the key */
 
 	buffer = (char *)vmalloc(config.page_size * sizeof(char));
 
 	/*  Search for key in dictionary entry */
     for (i = 0; i < config.MAX_KEYS; ++i) {
-        if (!strcmp(config.dir.list[i].key, key)) {
+        if (config.dir.list[i].keyHash == _hash) {
 		/* Key found. Check if the entry is valid */
 		    if (config.dir.list[i].state == KEY_VALID) {
                 printk(PRINT_PREF "Key \"%s\" found\n", key);
-                entry = config.dir.list[i];
+                entry = &config.dir.list[i];
                 break;
 		    }
 		}
     }
 
 	if (entry) {
-        page_index = (entry.block * config.pages_per_block) + entry.page_offset;
+        page_index = (entry->block * config.pages_per_block) + entry->page_offset;
         address = ((uint64_t) page_index) * ((uint64_t) config.page_size);
 
         /* read page */
@@ -480,7 +482,7 @@ int get_keyval(const char *key, char *val)
 			cur_val = buffer + 2 * sizeof(int) + key_len;
 			if (!strncmp(cur_key, key, strlen(key))) {
 				/* key on the page is same as input key. Read value */
-				memcpy(val, read_val, val_len);
+				memcpy(val, cur_val, val_len);
 			    val[val_len] = '\0';
 				vfree(buffer);
 				return page_index;
@@ -491,6 +493,75 @@ int get_keyval(const char *key, char *val)
     vfree(buffer);
     return -1;
 }
+
+/**
+ * Delete a Key-Value pair 
+ * Returns 0 on success, -1 if key does not exist.
+ */
+int del_keyval(const char *key)
+{
+    int i;
+    __u32 _hash = hash(key); 
+
+    for (i = 0; i < config.MAX_KEYS; ++i) {
+        if (config.dir.list[i].keyHash == _hash) {
+            if (config.dir.list[i].state == KEY_VALID) {
+                /* Valid key found */
+                return delete(&config.dir.list[i]);
+            }  
+        }
+    }
+    return -1;
+}
+
+/**
+ * Sets metadata info of entry to deleted
+ * Returns -1 if invalid entry
+ */
+int delete(directory_entry *entry)
+{
+    if (!entry) 
+        return -1;
+    entry->state = KEY_DELETED;
+    config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
+    return 0;
+}
+
+/**
+ * Update a Key-Value pair
+ * -1 when the size to write is too big
+ * -2 when the key already exists
+ * -3 when we are in read-only mode
+ * -4 when the MTD driver returns an error
+ * -5 when the key does not exist
+ */
+int update_keyval(const char *key, const char *val)
+{
+    directory_entry *entry = key_exists(key);
+    if (entry) {
+        delete(entry);
+        return set_keyval(key, val);
+    }
+    return -5;
+}
+
+/**
+ * Checks whether key exists in the metadata.
+ * Returns the entry if key exists, otherwise returns NULL
+ */
+directory_entry *key_exists(const char *key)
+{
+    int i;
+    __u32 _hash = hash(key);
+     
+    for (i = 0; i < config.MAX_KEYS; ++i)
+        if (config.dir.list[i].keyHash == _hash)
+            if (config.dir.list[i].state == KEY_VALID) 
+                return &(config.dir.list[i]);
+
+    return NULL;
+}
+
 
 /**
  * After an insertion, determine which is the flash page that will receive the 

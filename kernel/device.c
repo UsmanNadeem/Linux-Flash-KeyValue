@@ -142,6 +142,45 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num,
 			break;
 		}
 
+        /* delete operation */
+        /* return values: 
+         * 0  : success
+         * -1 : key not found
+         * -2 : user/kernelspace mem transfer error */
+    case IOCTL_DEL:
+        {
+            int ret = 0;
+            int err_bytes_copied = 0;
+            char *key;
+            keyval kv;
+            
+            /* get the keyval structure from userspace */
+            err_bytes_copied += copy_from_user(&kv, (void *)ioctl_param,
+                    sizeof(keyval));
+            
+            /* get key */
+            key = (char *)vmalloc((kv.key_len + 1) * sizeof(char));
+            err_bytes_copied += copy_from_user(key, kv.key, kv.key_len + 1);
+
+            if (!err_bytes_copied)
+                ret = del_keyval(key);  /* call the module function to delete*/
+            else
+                ret = -2;   /* user/kernelspace memory transfer error */
+
+            /* put return code to userspace */
+            put_user(ret, (int *)&(((keyval *) (ioctl_param))->status));
+
+            /* free the buffer */
+            vfree(key);
+            break;
+        }
+
+        /* update operation */
+    case IOCTL_UPDATE:
+        {
+            break;
+        }
+
 	default:
 		return -8;	/* bad ioctl code */
 	}

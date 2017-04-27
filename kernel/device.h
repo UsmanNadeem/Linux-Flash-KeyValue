@@ -34,6 +34,8 @@ typedef struct {
  */
 #define IOCTL_GET _IOR(MAJOR_NUM, 0, keyval *)
 #define IOCTL_SET _IOR(MAJOR_NUM, 1, keyval *)
+#define IOCTL_DEL _IOR(MAJOR_NUM, 3, keyval *)
+#define IOCTL_UPDATE _IOR(MAJOR_NUM, 4, keyval *)
 #define IOCTL_FORMAT _IOR(MAJOR_NUM, 2, int *)
 
 int device_init(void);

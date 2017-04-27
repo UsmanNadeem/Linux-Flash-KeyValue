@@ -74,6 +74,8 @@ typedef struct {
 /* export some prototypes for function used in the virtual device file */
 int set_keyval(const char *key, const char *val);
 int get_keyval(const char *key, char *val);
+int del_keyval(const char *key);
+int update_keyval(const char *key, const char *val);
 int format(void);
 
 extern lkp_kv_cfg config;

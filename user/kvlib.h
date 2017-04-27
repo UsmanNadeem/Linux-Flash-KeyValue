@@ -12,6 +12,9 @@ int kvlib_set(const char *key, const char *value);
 /* getting a value from a key */
 int kvlib_get(const char *key, char *value);
 
+/* delete a key */
+int kvlib_del(const char *key);
+
 /* fomat */
 int kvlib_format();
 

@@ -150,3 +150,43 @@ int kvlib_get(const char *key, char *value)
 
 	return ret;
 }
+
+/**
+ * Delete a key
+ * Returns:
+ * 0 when ok
+ * -1 on virtual device file open error
+ * -2 on ioctl error
+ * -3 if key does not exist
+ * -4 on user/kernelspace memory transfer error 
+ */
+int kvlib_del(const char *key)
+{
+    int fd;
+    int ret = 0;
+    keyval kv;
+
+    fd = open(DEVICE_NAME, 0);
+    if (fd < 0)
+        return -1;
+
+    kv.key = (char *)malloc((strlen(key) + 1) * sizeof(char));
+    sprintf(kv.key, "%s" ,key);
+    kv.key_len = strlen(key);
+
+    /* perform IOCTL */
+    if (ioctl(fd, IOCTL_DEL, &kv) != 0)
+        return -2;
+
+    /* set return codes */
+    if (kv.status == -1)
+        ret = -3;   /* key not found */
+    else if (kv.status == -2)
+        ret = -4;   /* user/kernelspace memory transfer error */
+
+    free(kv.key);
+
+    close(fd);
+    
+    return ret;
+}
