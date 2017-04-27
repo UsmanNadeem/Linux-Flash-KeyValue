@@ -24,8 +24,13 @@ int get_next_page_index_to_write(void);
 int get_next_free_block(void);
 int init_scan(void);
 int delete(directory_entry* a);
-void writeFSMetadata(void);
 directory_entry *key_exists(const char *key);
+
+
+void writeFSMetadata(void);
+int initialize_firsttime(int mtd_index);
+int readFSMetadata(int mtd_index);
+
 
 lkp_kv_cfg config;
 
@@ -70,8 +75,6 @@ static void __exit lkp_kv_exit(void)
  */
 int init_config(int mtd_index)
 {
-	uint64_t tmp_blk_num;
-
 	if (mtd_index == -1) {
 		printk(PRINT_PREF
 		       "Error, flash partition index missing, should be"
@@ -79,18 +82,180 @@ int init_config(int mtd_index)
 		return -1;
 	}
 
-	config.format_done = 0;
-	config.read_only = 0;
 
-	config.mtd_index = mtd_index;
+	if (readFSMetadata(mtd_index) == -1) {
+		printk(PRINT_PREF "Init metadata read error creating new metadata. Assuming everything is formated\n");
+		return initialize_firsttime(mtd_index);
+	}
+
+
+
+
+	return 0;
+}
+
+
+int readFSMetadata(int mtd_index) {
 
 	/* The flash partition is manipulated by caling the driver, through the
 	 * mtd_info object. There is one of these object per flash partition */
+	struct mtd_info *mtd = get_mtd_device(NULL, mtd_index);
+
+	if (mtd == NULL)
+		return -1;
+	int block_size = mtd->erasesize;
+	int page_size = mtd->writesize;
+	int pages_per_block = block_size / page_size;
+	uint64_t tmp_blk_num = mtd->size;
+	do_div(tmp_blk_num, (uint64_t) config.mtd->erasesize);
+	int nb_blocks = (int)tmp_blk_num;
+
+
+
+
+	char *buffer;
+
+	uint64_t numPages = 0;
+	uint64_t j = 0;
+	int i = 0;
+	int k = 0;
+
+	uint64_t size = 0;
+	size+= sizeof(lkp_kv_cfg);
+	size+= sizeof(blk_info)* nb_blocks;
+	size+= sizeof(page_state) * nb_blocks * 
+		pages_per_block;
+
+	int totalPages = nb_blocks * pages_per_block;
+	for (j = 0; j < size;) {
+		j += page_size;
+		numPages += 1;
+	}
+
+
+	buffer = (char *)vmalloc(config.page_size * numPages);
+	for (i = 0; i < config.page_size * numPages; i++)
+		buffer[i] = 0x0;
+
+
+    /* read page */
+	for (i = 0; i < numPages; ++i) {
+		uint64_t address = ((uint64_t) i) * ((uint64_t) config.page_size);
+	    if (read_page(address, buffer + address) != 0) {
+			printk(PRINT_PREF "Error in readFSMetadata\n");
+			vfree(buffer);
+			return -1;
+		}
+	}
+
+
+	memcpy(&config, buffer, sizeof(lkp_kv_cfg));
+
+
+	if (config.mtd_index != mtd_index)
+		return -1;
+
+	config.mtd = get_mtd_device(NULL, mtd_index);
+
+	if (config.mtd == NULL || config.nb_blocks != nb_blocks || config.block_size != block_size)
+		return -1;
+
+	config.blocks = (blk_info *) vmalloc((config.nb_blocks) * sizeof(blk_info));
+
+
+
+	for (i = 0; i < config.nb_blocks; ++i) {
+		
+		memcpy(&(config.blocks[i]), 
+			buffer + sizeof(lkp_kv_cfg) + (i*sizeof(blk_info)) + (i*config.pages_per_block*sizeof(page_state)) 
+			, sizeof(blk_info));
+		
+			config.blocks[i].pages_states = (page_state *) vmalloc(config.pages_per_block * sizeof(page_state));
+
+		for (k = 0; k < config.pages_per_block; ++k) {
+			
+			memcpy(&(config.blocks[i].pages_states[k]), 
+				buffer + sizeof(lkp_kv_cfg) + ((i+1)*sizeof(blk_info)) + (i*config.pages_per_block*sizeof(page_state))
+				+ (k*sizeof(page_state))
+				, sizeof(page_state));
+		
+		}
+	}
+	vfree(buffer);
+
+
+
+	int dirInOnePage = page_size/sizeof(directory_entry);
+	int numDirPages = 0;
+	uint64_t remainingPages = totalPages - numPages;
+
+	while ((numDirPages*dirInOnePage) < remainingPages) {
+		--remainingPages;
+		++numDirPages;
+	}
+	uint64_t MAX_KEYS = remainingPages;
+
+
+	size = numDirPages * config.page_size;
+
+	tmp_blk_num = numPages;
+	numPages = 0;
+	for (j = 0; j < size;) {
+		j += config.page_size;
+		numPages += 1;
+	}
+
+	buffer = (char *)vmalloc(config.page_size * numPages);
+	for (i = 0; i < config.page_size * numPages; i++)
+		buffer[i] = 0x0;
+
+
+    /* read page */
+	for (i = 0; i < numPages; ++i) {
+		uint64_t address = ((uint64_t) tmp_blk_num+i) * ((uint64_t) config.page_size);
+		uint64_t baseOffset = ((uint64_t) i) * ((uint64_t) config.page_size);
+	    if (read_page(address, buffer + baseOffset) != 0) {
+			printk(PRINT_PREF "Error in readFSMetadata\n");
+			vfree(buffer);
+			return -1;
+		}
+	}
+
+	config.dir.list = (directory_entry *) vmalloc((MAX_KEYS) * sizeof(directory_entry));
+
+	for (i = 0; i < config.MAX_KEYS; ++i) {
+
+		memcpy(&(config.dir.list[i])
+			, buffer + sizeof(directory_entry)*i
+			, sizeof(directory_entry));
+	}
+	vfree(buffer);
+
+	/* Semaphore initialized to 1 (available) */
+	sema_init(&config.format_lock, 1);
+
+	print_config();
+
+	return 0;
+}
+
+/**
+ * Launch time metadata creation: flash is scanned to determine which flash 
+ * blocs and pages are free/occupied. Return 0 when ok, -1 on error
+ */
+int initialize_firsttime(int mtd_index)
+{
+	int i, j;
+
+	uint64_t tmp_blk_num;
+
+	config.mtd_index = mtd_index;
 	config.mtd = get_mtd_device(NULL, mtd_index);
 
 	if (config.mtd == NULL)
 		return -1;
-
+	config.format_done = 0;
+	config.read_only = 0;
 	config.block_size = config.mtd->erasesize;
 	config.page_size = config.mtd->writesize;
 	config.pages_per_block = config.block_size / config.page_size;
@@ -104,26 +269,6 @@ int init_config(int mtd_index)
 
 	print_config();
 
-	/* Flash scan for metadata creation: which flash blocks and pages are 
-	 * free/occupied */
-	if (init_scan() != 0) {
-		printk(PRINT_PREF "Init scan error\n");
-		return -1;
-	}
-
-	return 0;
-}
-
-/**
- * Launch time metadata creation: flash is scanned to determine which flash 
- * blocs and pages are free/occupied. Return 0 when ok, -1 on error
- */
-int init_scan()
-{
-	int i, j;
-	char *buffer;  // size of a page
-
-	buffer = (char *)vmalloc(config.page_size * sizeof(char));
 
 	/* metadata initialization */
 	config.blocks =
@@ -137,47 +282,55 @@ int init_scan()
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}
 
-	/* scan: each flash page is read sequentially */
-	for (i = 0; i < config.nb_blocks; i++) {
-		for (j = 0; j < config.pages_per_block; j++) {
-			int key_len;
-			if (read_page(i * config.pages_per_block + j, buffer) !=
-			    0)
-				goto err_free;
-			memcpy(&key_len, buffer, sizeof(int));
 
-			/* If there are only ones at the beginning of the flash page, the page
-			 * is free */
-			if (key_len == 0xFFFFFFFF)
-				break;
-			else {
-				/* otherwise the page contains something */
-				config.blocks[i].state = BLK_USED;
-				config.blocks[i].pages_states[j] = PG_VALID;
-				/* If all pages contain something: switch to read-only mode */
-				if ((i == (config.nb_blocks - 1))
-				    && (j == (config.pages_per_block - 1)))
-					config.read_only = 1;
-			}
-		}
+	int numPages = 0;
+	uint64_t size = 0;
+
+	size+= sizeof(lkp_kv_cfg);
+	size+= sizeof(blk_info)* config.nb_blocks;
+	size+= sizeof(page_state) * config.nb_blocks * 
+		config.pages_per_block;
+
+	for (j = 0; j < size;) {
+		j += config.page_size;
+		numPages += 1;
 	}
 
-	vfree(buffer);
+	int dirInOnePage = config.page_size/sizeof(directory_entry);
+	int numDirPages = 0;
+	int totalPages = config.nb_blocks * config.pages_per_block;
+	uint64_t remainingPages = totalPages - numPages;
+
+	while ((numDirPages*dirInOnePage) < remainingPages) {
+		--remainingPages;
+		++numDirPages;
+	}
+	config.MAX_KEYS = remainingPages;
+	numPages += numDirPages;
+
+	config.metadata_blocks = 0;
+	for (i=0, j = 0; j < numPages;) {
+		j += config.pages_per_block;
+		i += 1;
+	}
+	config.metadata_blocks = i;
+	config.current_block = i;
+	config.current_page_offset = 0;
+
+	config.dir.list = (directory_entry *) vmalloc((config.MAX_KEYS) * sizeof(directory_entry));
+
+	for (i = 0; i < config.MAX_KEYS; ++i) {
+		config.dir.list[i].keyHash = 0;
+		config.dir.list[i].state = KEY_DELETED;
+	}
 
 	return 0;
-
-err_free:
-	vfree(buffer);
-	for (i = 0; i < config.nb_blocks; i++)
-		vfree(config.blocks[i].pages_states);
-	vfree(config.blocks);
-	return -1;
 }
 
 /**
  * Freeing stuff on exit
  */
-void destroy_config(void)
+void destroy_config(void)  //todo fix
 {
 	int i;
 	put_mtd_device(config.mtd);
@@ -633,7 +786,6 @@ void writeFSMetadata(void) {
 	size+= sizeof(blk_info)* config.nb_blocks;
 	size+= sizeof(page_state) * config.nb_blocks * 
 		config.pages_per_block;
-	size+= sizeof(directory_entry) * config.MAX_KEYS;
 
 	for (j = 0; j < size;) {
 		j += config.page_size;
@@ -667,19 +819,44 @@ void writeFSMetadata(void) {
 		
 		}
 	}
-
-	for (i = 0; i < config.MAX_KEYS; ++i) {
-
-		memcpy(buffer + sizeof(lkp_kv_cfg) 
-			+ (config.nb_blocks*sizeof(blk_info))
-			+ (config.nb_blocks*config.pages_per_block*sizeof(page_state))
-			, &(config.dir.list[i]), sizeof(directory_entry));
-	}
-
 	for (i = 0; i < numPages; ++i) {
 		addr = ((uint64_t) i) * ((uint64_t) config.page_size);
 		if (config.mtd->
 		    _write(config.mtd, addr, config.page_size, &retlen, buffer + addr) != 0) {
+
+				printk(PRINT_PREF "Error writing metadata\n");
+				vfree(buffer);
+				return;
+		}
+	}
+	vfree(buffer);
+	k = numPages;
+
+
+	//  Write Directory
+	numPages = 0;
+	size = sizeof(directory_entry) * config.MAX_KEYS;
+	for (j = 0; j < size;) {
+		j += config.page_size;
+		numPages += 1;
+	}
+
+	buffer = (char *)vmalloc(config.page_size * numPages);
+
+	for (i = 0; i < config.page_size * numPages; i++)
+		buffer[i] = 0x0;
+	
+	// copy dir to memory
+	for (i = 0; i < config.MAX_KEYS; ++i) {
+
+		memcpy(buffer + sizeof(directory_entry)*i
+			, &(config.dir.list[i]), sizeof(directory_entry));
+	}
+
+	for (i = 0; i < numPages; ++i) {
+		addr = ((uint64_t) k + i) * ((uint64_t) config.page_size);
+		if (config.mtd->
+		    _write(config.mtd, addr, config.page_size, &retlen, buffer + (i*config.page_size)) != 0) {
 
 				printk(PRINT_PREF "Error writing metadata\n");
 				vfree(buffer);

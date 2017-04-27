@@ -67,7 +67,7 @@ typedef struct {
 	struct semaphore format_lock;	/* used during the format operation */
 
 	directory dir;	/* mapping from key to block */
-	unsigned long long int MAX_KEYS;
+	uint64_t MAX_KEYS;
 	unsigned int metadata_blocks;
 } lkp_kv_cfg;
 
