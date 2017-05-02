@@ -51,10 +51,31 @@ int main(void)
 	printf(" returns: %d (should be 0), read: %s (should be val35)\n", ret,
 		buffer);
 
-	/* trying to set a value for an already existing key */
-	ret = kvlib_set("key1", "crazyval");
+    /************************ Update test *******************************/
+
+
+	/* Update Test: trying to set a value for an already existing key */
+	ret = kvlib_set("key1", "key1_updated");
 	printf("Trying to insert an already existing key:\n");
-	printf(" returns: %d (should be -4)\n", ret);
+	printf(" returns: %d (should be 0 (successful))\n", ret);
+
+    /* Reading updated value */
+	ret = kvlib_get("key1", buffer);
+	printf("Reading the value of an updated key:\n");
+	printf(" returns: %d (should be 0), read: %s (should be key1_updated)\n", ret, buffer);
+
+	/* Another Update Test: trying to set a value for an already existing key */
+	ret = kvlib_set("key1", "key1_updated_again");
+	printf("Reading the value of an updated key:\n");
+	printf(" returns: %d (should be 0 (successful))\n", ret);
+
+    /* Reading updated value */
+	ret = kvlib_get("key1", buffer);
+	printf("Reading the value of an updated key:\n");
+	printf(" returns: %d (should be 0), read: %s (should be key1_updated_again)\n", ret, buffer);
+
+    /************************ Non-existing key test *******************************/
+
 
 	/* trying to get the value of a non-existing key */
 	ret = kvlib_get("key2000", buffer);
