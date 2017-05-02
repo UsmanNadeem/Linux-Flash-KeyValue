@@ -588,7 +588,8 @@ int update_keyval(const char *key, const char *val)
     if (entry) {
         delete(entry);
         ret = set_keyval(key, val);
-        WARN_ON(ret != 2);
+        //WARN_ON(ret != 2);
+        return ret;
     }
     return -2;
 }

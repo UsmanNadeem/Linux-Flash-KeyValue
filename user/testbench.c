@@ -55,8 +55,8 @@ int main(void)
 
 
 	/* Update Test: trying to set a value for an already existing key */
-	ret = kvlib_set("key1", "key1_updated");
-	printf("Trying to insert an already existing key:\n");
+	ret = kvlib_update("key1", "key1_updated");
+	printf("Trying to update a key:\n");
 	printf(" returns: %d (should be 0 (successful))\n", ret);
 
     /* Reading updated value */
@@ -65,14 +65,18 @@ int main(void)
 	printf(" returns: %d (should be 0), read: %s (should be key1_updated)\n", ret, buffer);
 
 	/* Another Update Test: trying to set a value for an already existing key */
-	ret = kvlib_set("key1", "key1_updated_again");
-	printf("Reading the value of an updated key:\n");
+	ret = kvlib_update("key1", "key1_updated_again");
+	printf("Trying to update a key:\n");
 	printf(" returns: %d (should be 0 (successful))\n", ret);
 
     /* Reading updated value */
 	ret = kvlib_get("key1", buffer);
 	printf("Reading the value of an updated key:\n");
 	printf(" returns: %d (should be 0), read: %s (should be key1_updated_again)\n", ret, buffer);
+    
+   
+     /************************ Delete test *******************************/
+
 
     /************************ Non-existing key test *******************************/
 
