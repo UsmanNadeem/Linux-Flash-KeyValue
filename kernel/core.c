@@ -83,10 +83,10 @@ int init_config(int mtd_index)
 	}
 
 
-	if (readFSMetadata(mtd_index) == -1) {
+//	if (readFSMetadata(mtd_index) == -1) {
 		printk(PRINT_PREF "Init metadata read error creating new metadata. Assuming everything is formated\n");
 		return initialize_firsttime(mtd_index);
-	}
+//	}
 
 
 
@@ -99,19 +99,26 @@ int readFSMetadata(int mtd_index) {
 
 	/* The flash partition is manipulated by caling the driver, through the
 	 * mtd_info object. There is one of these object per flash partition */
-	struct mtd_info *mtd = get_mtd_device(NULL, mtd_index);
+    
+    printk("************* read_fs_metadata *************\n");	
+    
+    struct mtd_info *mtd = get_mtd_device(NULL, mtd_index);
 
 	if (mtd == NULL)
 		return -1;
+
 	int block_size = mtd->erasesize;
 	int page_size = mtd->writesize;
 	int pages_per_block = block_size / page_size;
+    printk("pages per block calculated\n");
 	uint64_t tmp_blk_num = mtd->size;
-	do_div(tmp_blk_num, (uint64_t) config.mtd->erasesize);
+	printk("dodiv\n");
+    do_div(tmp_blk_num, (uint64_t) mtd->erasesize);
+    printk("dodiv done\n");
 	int nb_blocks = (int)tmp_blk_num;
 
 
-
+    printk("*************** Read configuration ****************** \n");
 
 	char *buffer;
 
@@ -132,21 +139,29 @@ int readFSMetadata(int mtd_index) {
 		numPages += 1;
 	}
 
+    printk("Before config.pagesize\n");
 
-	buffer = (char *)vmalloc(config.page_size * numPages);
-	for (i = 0; i < config.page_size * numPages; i++)
+	buffer = (char *)vmalloc(page_size * numPages);
+	for (i = 0; i < page_size * numPages; i++)
 		buffer[i] = 0x0;
+
+    printk("*************** Going to read page ****************** \n");
 
 
     /* read page */
 	for (i = 0; i < numPages; ++i) {
-		uint64_t address = ((uint64_t) i) * ((uint64_t) config.page_size);
-	    if (read_page(address, buffer + address) != 0) {
+        printk("Index : %d\n", i);
+		uint64_t address = ((uint64_t) i) * ((uint64_t) page_size);
+        printk("Address : %llu", address);
+	    if (read_page(i, buffer + i) != 0) {
 			printk(PRINT_PREF "Error in readFSMetadata\n");
 			vfree(buffer);
 			return -1;
 		}
 	}
+
+
+    printk("*************** Page read complete ****************** \n");
 
 
 	memcpy(&config, buffer, sizeof(lkp_kv_cfg));
@@ -161,6 +176,9 @@ int readFSMetadata(int mtd_index) {
 		return -1;
 
 	config.blocks = (blk_info *) vmalloc((config.nb_blocks) * sizeof(blk_info));
+
+
+    printk("*************** Iterating over blocks ****************** \n");
 
 
 
@@ -182,6 +200,8 @@ int readFSMetadata(int mtd_index) {
 		}
 	}
 	vfree(buffer);
+
+    printk("*************** freed buffer ****************** \n");
 
 
 
@@ -209,6 +229,8 @@ int readFSMetadata(int mtd_index) {
 	for (i = 0; i < config.page_size * numPages; i++)
 		buffer[i] = 0x0;
 
+    printk("*************** Reading page again ****************** \n");
+
 
     /* read page */
 	for (i = 0; i < numPages; ++i) {
@@ -220,6 +242,10 @@ int readFSMetadata(int mtd_index) {
 			return -1;
 		}
 	}
+
+    printk("*************** Page read complete  ****************** \n");
+
+
 
 	config.dir.list = (directory_entry *) vmalloc((MAX_KEYS) * sizeof(directory_entry));
 
@@ -432,7 +458,9 @@ int set_keyval(const char *key, const char *val)
 	memcpy(buffer + 2 * sizeof(int) + key_len, val, val_len);
 
 	/* actual write on flash */
-	ret =
+	//printk("Writing key: %s, Value: %s\n", key, val);
+  //  printk("Writing on block: %d, page_offset: %d", config.current_block, config.current_page_offset);
+    ret =
 	    write_page(config.current_block * config.pages_per_block +
 		       config.current_page_offset, buffer);
 
@@ -442,13 +470,12 @@ int set_keyval(const char *key, const char *val)
 		return -3;
 	else if (ret == -2)	/* write error */
 		return -4;
-
-
+    
 	// successfully written. Update directory metadata.
 	dirToAdd->keyHash = _hash;
 	dirToAdd->state = KEY_VALID;
 	dirToAdd->block = config.current_block;
-	dirToAdd->page_offset = config.current_page_offset;
+	dirToAdd->page_offset = config.current_page_offset-1;
 
 	return 0;
 }
@@ -464,7 +491,6 @@ int get_keyval(const char *key, char *val)
 {
 	int i;
 	char *buffer;
-	uint64_t address;
 	directory_entry *entry = NULL;
     int page_index;
     int key_len, val_len;
@@ -487,22 +513,21 @@ int get_keyval(const char *key, char *val)
 
 	if (entry) {
         page_index = (entry->block * config.pages_per_block) + entry->page_offset;
-        address = ((uint64_t) page_index) * ((uint64_t) config.page_size);
 
         /* read page */
-        if (read_page(address, buffer) != 0) {
+        if (read_page(page_index, buffer) != 0) {
 			vfree(buffer);
 			return -2;
 		}
-        
+
         memcpy(&key_len, buffer, sizeof(int));
         memcpy(&val_len, buffer + sizeof(int), sizeof(int));
-       
+        
         /* TODO: These checks are not necessary.*/
 		if (key_len != 0xFFFFFFFF) {	/* shoud always be true */
 			cur_key = buffer + 2 * sizeof(int);
 			cur_val = buffer + 2 * sizeof(int) + key_len;
-			if (!strncmp(cur_key, key, strlen(key))) {
+            if (!strncmp(cur_key, key, strlen(key))) {
 				/* key on the page is same as input key. Read value */
 				memcpy(val, cur_val, val_len);
 			    val[val_len] = '\0';
