@@ -8,8 +8,79 @@
 /* Library header */
 #include "kvlib.h"
 
+int persistenceWrite(void) {
+	int ret, i;
+
+	/* first let's format the partition to make sure we operate on a 
+	 * well-known state */
+	// ret = kvlib_format();
+	// printf("Formatting done:\n");
+	// printf(" returns: %d (should be 0)\n", ret);
+
+	/* "set" operation test */
+	printf("\n\n\n*********Testing set:\n");
+	ret = kvlib_set("key1", "val1");
+	//printf("Insert 1 (key1, val1):\n");
+	//printf(" returns: %d (should be 0)\n", ret);
+
+	ret = kvlib_set("key2", "val2");
+	//printf("Insert 2 (key2, val2):\n");
+	//printf(" returns: %d (should be 0)\n", ret);
+
+	/* Now let's fill an entire block lplus an additional page (we assume 
+	 * there are 64 pages per block) */
+	ret = 0;
+	for (i = 3; i < 65; i++) {
+		char key[128], val[128];
+		sprintf(key, "key%d", i);
+		sprintf(val, "val%d", i);
+		ret += kvlib_set(key, val);
+	}
+	// printf("Insert 3 to 64:\n");
+	// printf(" returns: %d (should be 0)\n", ret);
+	return ret == 0  ?	EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+int persistenceRead(void)
+{
+	int ret, i;
+	char buffer[128];
+	buffer[0] = '\0';
+
+	
+
+	/* "get" operation test */
+	printf("\n\n\n*********Testing get: reading keys 1 to 64\n");
+
+	ret = kvlib_get("key1", buffer);
+	 printf("Reading the value of key1:\n");
+	 printf(" returns: %d (should be 0), read: %s (should be val1)\n", ret,
+		 buffer);
+
+	for (i = 1; i < 65; i++) {
+		char key[128], val[128];
+		sprintf(key, "key%d", i);
+		sprintf(val, "val%d", i);
+		kvlib_get(key, buffer);
+		if (strcmp(val, buffer)) {
+			printf("************Failed GET: \n%s:%s\ngot \"%s\"\n", key, val, buffer);
+			exit(EXIT_FAILURE);
+		}
+
+	}
+	 printf("************Passed GET\n");
+
+
+	return EXIT_SUCCESS;
+
+}
+
+
+
 int main(void)
 {
+	return persistenceWrite();  // comment this to lauch read
+	return persistenceRead();
 	int ret, i;
 	char buffer[128];
 	buffer[0] = '\0';

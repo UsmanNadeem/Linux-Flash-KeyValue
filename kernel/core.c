@@ -30,7 +30,9 @@ directory_entry *key_exists(const char *key);
 void writeFSMetadata(void);
 int initialize_firsttime(int mtd_index);
 int readFSMetadata(int mtd_index);
-
+int read_page_mtd(int page_index, char *buf, struct mtd_info *mtd);
+int format(void);
+int eraseBlock(int blockNum, uint64_t number);
 
 lkp_kv_cfg config;
 
@@ -83,10 +85,12 @@ int init_config(int mtd_index)
 	}
 
 
-//	if (readFSMetadata(mtd_index) == -1) {
-		printk(PRINT_PREF "Init metadata read error creating new metadata. Assuming everything is formated\n");
+	printk(PRINT_PREF "Trying to read existing metadata\n");
+	if (readFSMetadata(mtd_index) == -1) {
+		printk(PRINT_PREF "Init metadata read error.\n\n*************Creating new metadata and formating.\n");
 		return initialize_firsttime(mtd_index);
-//	}
+	}
+	printk(PRINT_PREF "*************Using old metadata.\n");
 
 
 
@@ -145,23 +149,30 @@ int readFSMetadata(int mtd_index) {
 	for (i = 0; i < page_size * numPages; i++)
 		buffer[i] = 0x0;
 
-    printk("*************** Going to read page ****************** \n");
+    // printk("*************** Going to read page ****************** \n");
 
 
     /* read page */
+	printk(PRINT_PREF "Read starting from page_index: %d into buffer:0x%x\n", 0, (unsigned int)buffer);
 	for (i = 0; i < numPages; ++i) {
-        printk("Index : %d\n", i);
 		uint64_t address = ((uint64_t) i) * ((uint64_t) page_size);
-        printk("Address : %llu", address);
-	    if (read_page(i, buffer + i) != 0) {
-			printk(PRINT_PREF "Error in readFSMetadata\n");
+
+		int err = read_page_mtd(i, buffer + address, mtd);
+	    if (err != 0) {
+		    /*
+859          * In the absence of an error, drivers return a non-negative integer
+860          * representing the maximum number of bitflips that were corrected on
+861          * any one ecc region (if applicable; zero otherwise).
+862          */
+			printk(PRINT_PREF "Error: %d in readFSMetadata->read_page_mtd\n", err);
+			printk(PRINT_PREF "Error reading pagesize:%d page_index: %d into buffer:0x%x@0x%x\n", mtd->writesize, i, buffer,address);
 			vfree(buffer);
 			return -1;
 		}
 	}
 
 
-    printk("*************** Page read complete ****************** \n");
+    // printk("*************** Page read complete ****************** \n");
 
 
 	memcpy(&config, buffer, sizeof(lkp_kv_cfg));
@@ -178,7 +189,7 @@ int readFSMetadata(int mtd_index) {
 	config.blocks = (blk_info *) vmalloc((config.nb_blocks) * sizeof(blk_info));
 
 
-    printk("*************** Iterating over blocks ****************** \n");
+    // printk("*************** Iterating over blocks ****************** \n");
 
 
 
@@ -201,7 +212,7 @@ int readFSMetadata(int mtd_index) {
 	}
 	vfree(buffer);
 
-    printk("*************** freed buffer ****************** \n");
+    // printk("*************** freed buffer ****************** \n");
 
 
 
@@ -229,24 +240,27 @@ int readFSMetadata(int mtd_index) {
 	for (i = 0; i < config.page_size * numPages; i++)
 		buffer[i] = 0x0;
 
-    printk("*************** Reading page again ****************** \n");
+    // printk("*************** Reading page again ****************** \n");
 
 
     /* read page */
+	printk(PRINT_PREF "Read starting from page_index: %llu into buffer:0x%x\n", tmp_blk_num, (unsigned int)(buffer));
 	for (i = 0; i < numPages; ++i) {
 		// int read_page(int page_index, char *buf)
 		// 
 		// uint64_t address = ((uint64_t) tmp_blk_num+i) * ((uint64_t) config.page_size);
 		uint64_t address = ((uint64_t) tmp_blk_num+i);
 		uint64_t baseOffset = ((uint64_t) i) * ((uint64_t) config.page_size);  // offset in the buffer
-	    if (read_page(address, buffer + baseOffset) != 0) {
-			printk(PRINT_PREF "Error in readFSMetadata\n");
+		int err = read_page(address, buffer + baseOffset);
+	    if (err != 0) {
+			printk(PRINT_PREF "Error: %d in readFSMetadata->read_page\n", err);
+			printk(PRINT_PREF "Reading from page_index: %llu into buffer@0x%x\n", address, (unsigned int)(buffer+baseOffset));
 			vfree(buffer);
 			return -1;
 		}
 	}
 
-    printk("*************** Page read complete  ****************** \n");
+    // printk("*************** Page read complete  ****************** \n");
 
 
 
@@ -277,6 +291,9 @@ int initialize_firsttime(int mtd_index)
 	int i, j;
 
 	uint64_t tmp_blk_num;
+
+	int numPages = 0;
+	uint64_t size = 0;
 
 	config.mtd_index = mtd_index;
 	config.mtd = get_mtd_device(NULL, mtd_index);
@@ -312,8 +329,6 @@ int initialize_firsttime(int mtd_index)
 	}
 
 
-	int numPages = 0;
-	uint64_t size = 0;
 
 	size+= sizeof(lkp_kv_cfg);
 	size+= sizeof(blk_info)* config.nb_blocks;
@@ -343,7 +358,9 @@ int initialize_firsttime(int mtd_index)
 		i += 1;
 	}
 	config.metadata_blocks = i;
-	config.current_block = i;
+	config.current_block = config.metadata_blocks;
+	config.blocks[config.metadata_blocks].state = BLK_USED;
+
 	config.current_page_offset = 0;
 
 	config.dir.list = (directory_entry *) vmalloc((config.MAX_KEYS) * sizeof(directory_entry));
@@ -352,7 +369,8 @@ int initialize_firsttime(int mtd_index)
 		config.dir.list[i].keyHash = 0;
 		config.dir.list[i].state = KEY_DELETED;
 	}
-
+	format();
+	writeFSMetadata();
 	return 0;
 }
 
@@ -484,7 +502,7 @@ int set_keyval(const char *key, const char *val)
 	// dirToAdd->page_offset = config.current_page_offset-1;  // write_page increases the offset. could give wrong offset 
 														   // if we go to the next page
 	dirToAdd->page_offset = old_offset;
-
+	writeFSMetadata();   // todo remove from here and set with timer and lock
 	return 0;
 }
 
@@ -688,11 +706,65 @@ void format_callback(struct erase_info *e)
 	up(&config.format_lock);
 }
 
+int eraseBlock(int blockNum, uint64_t number)
+{
+	printk(PRINT_PREF "Erasing block %d\n", blockNum);
+
+	struct erase_info ei;
+	int i, j;
+
+	if (number < 1) return 0;
+	/* erasing one or several flash blocks is made through the use of an 
+	 * erase_info structure passed to the MTD NAND driver */
+	ei.mtd = config.mtd;
+	ei.len = ((uint64_t) config.block_size) * ((uint64_t) number);
+	ei.addr = ((uint64_t) config.block_size) * ((uint64_t) blockNum);
+	/* the erase operation is made aysnchronously and a callback function will
+	 * be executed when the operation is done */
+	ei.callback = format_callback;
+
+	config.format_done = 0;
+
+	/* Call the MTD driver  */
+	if (config.mtd->_erase(config.mtd, &ei) != 0)
+		return -1;
+
+	/* Wait for the operation completion with a spinlock, the callback function
+	 * will set format_done to 1 
+	 * here a better idea might be to use a condition variable
+	 */
+	while (1)
+		if (!down_trylock(&config.format_lock)) {
+			if (config.format_done) {
+				up(&config.format_lock);
+				break;
+			}
+			up(&config.format_lock);
+		}
+
+	/* was there a driver issue related to the erase oepration? */
+	if (config.format_done == -1)
+		return -1;
+    
+	/* update metadata: now all flash blocks and pages are free */
+	for (i = blockNum; i < blockNum+number; i++) {
+		config.blocks[i].state = BLK_FREE;
+		for (j = 0; j < config.pages_per_block; j++)
+			config.blocks[i].pages_states[j] = PG_FREE;
+	}
+
+	printk(PRINT_PREF "Block(s) erased\n");
+
+	return 0;
+}
+
 /**
  * Format operation: we erase the entire flash partition
  */
 int format()
 {
+	printk(PRINT_PREF "Formating.....\n");
+
 	struct erase_info ei;
 	int i, j;
 
@@ -729,7 +801,7 @@ int format()
 		return -1;
     
     /* update in-memory metadata */
-    config.dir.list = (directory_entry *) vmalloc((config.MAX_KEYS) * sizeof(directory_entry));
+    // config.dir.list = (directory_entry *) vmalloc((config.MAX_KEYS) * sizeof(directory_entry));
 
 	for (i = 0; i < config.MAX_KEYS; ++i) {
 		config.dir.list[i].keyHash = 0;
@@ -743,10 +815,12 @@ int format()
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}
 
-	config.current_block = 0;
+	// config.current_block = 0;
 	config.current_page_offset = 0;
-	config.blocks[0].state = BLK_USED;
+	// config.blocks[0].state = BLK_USED;
 	config.read_only = 0;
+	config.current_block = config.metadata_blocks;
+	config.blocks[config.metadata_blocks].state = BLK_USED;
 
 	printk(PRINT_PREF "Format done\n");
 
@@ -792,7 +866,6 @@ int write_page(int page_index, const char *buf)
 		config.read_only = 1;
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -804,6 +877,8 @@ int read_page(int page_index, char *buf)
 {
 	uint64_t addr;
 	size_t retlen;
+	// printk(PRINT_PREF "in read_page()\n");
+
 
 	/* compute the flash target address in bytes */
 	addr = ((uint64_t) page_index) * ((uint64_t) config.page_size);
@@ -811,6 +886,23 @@ int read_page(int page_index, char *buf)
 	/* call the NAND driver MTD to perform the read operation */
 	return config.mtd->_read(config.mtd, addr, config.page_size, &retlen,
 				 buf);
+}
+
+int read_page_mtd(int page_index, char *buf, struct mtd_info *mtd)
+{
+	uint64_t addr;
+	size_t retlen;
+	// printk(PRINT_PREF "in read_page_mtd()\n");
+
+
+	/* compute the flash target address in bytes */
+	addr = ((uint64_t) page_index) * ((uint64_t) mtd->writesize);
+
+	/* call the NAND driver MTD to perform the read operation */
+	return mtd_read(mtd, addr, mtd->writesize, &retlen,
+					 buf);
+	// return mtd->_read(mtd, addr, mtd->writesize, &retlen,
+	// 			 buf);
 }
 
 
@@ -823,6 +915,10 @@ void writeFSMetadata(void) {
 	uint64_t j = 0;
 	int i = 0;
 	int k = 0;
+
+
+	eraseBlock(0, config.metadata_blocks);
+
 
 	size+= sizeof(lkp_kv_cfg);
 	size+= sizeof(blk_info)* config.nb_blocks;
@@ -923,6 +1019,7 @@ void print_config()
 	printk(PRINT_PREF "block_size: %d\n", config.block_size);
 	printk(PRINT_PREF "page_size: %d\n", config.page_size);
 	printk(PRINT_PREF "pages_per_block: %d\n", config.pages_per_block);
+	printk(PRINT_PREF "metadata_blocks: %d\n", config.metadata_blocks);
 	printk(PRINT_PREF "read_only: %d\n", config.read_only);
 }
 
