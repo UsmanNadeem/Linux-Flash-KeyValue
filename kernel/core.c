@@ -234,8 +234,11 @@ int readFSMetadata(int mtd_index) {
 
     /* read page */
 	for (i = 0; i < numPages; ++i) {
-		uint64_t address = ((uint64_t) tmp_blk_num+i) * ((uint64_t) config.page_size);
-		uint64_t baseOffset = ((uint64_t) i) * ((uint64_t) config.page_size);
+		// int read_page(int page_index, char *buf)
+		// 
+		// uint64_t address = ((uint64_t) tmp_blk_num+i) * ((uint64_t) config.page_size);
+		uint64_t address = ((uint64_t) tmp_blk_num+i);
+		uint64_t baseOffset = ((uint64_t) i) * ((uint64_t) config.page_size);  // offset in the buffer
 	    if (read_page(address, buffer + baseOffset) != 0) {
 			printk(PRINT_PREF "Error in readFSMetadata\n");
 			vfree(buffer);
@@ -390,7 +393,7 @@ static __u32 hash( const char* name) {
  */
 int set_keyval(const char *key, const char *val)
 {
-	int key_len, val_len, i, ret;
+	int key_len, val_len, i, ret, old_offset;
 	char *buffer;
 	directory_entry* dirToAdd;
 	__u32 _hash = hash(key);
@@ -460,6 +463,7 @@ int set_keyval(const char *key, const char *val)
 	/* actual write on flash */
 	//printk("Writing key: %s, Value: %s\n", key, val);
   //  printk("Writing on block: %d, page_offset: %d", config.current_block, config.current_page_offset);
+	old_offset = config.current_page_offset;
     ret =
 	    write_page(config.current_block * config.pages_per_block +
 		       config.current_page_offset, buffer);
@@ -475,8 +479,10 @@ int set_keyval(const char *key, const char *val)
 	dirToAdd->keyHash = _hash;
 	dirToAdd->state = KEY_VALID;
 	dirToAdd->block = config.current_block;
-	dirToAdd->page_offset = config.current_page_offset-1;
-
+	// dirToAdd->page_offset = config.current_page_offset-1;  // write_page increases the offset. could give wrong offset 
+														   // if we go to the next page
+	dirToAdd->page_offset = old_offset;
+	
 	return 0;
 }
 
