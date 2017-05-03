@@ -74,8 +74,38 @@ int main(void)
 	printf("Reading the value of an updated key:\n");
 	printf(" returns: %d (should be 0), read: %s (should be key1_updated_again)\n", ret, buffer);
     
-   
-     /************************ Delete test *******************************/
+    /* Another Update Test: trying to set a value for an already existing key */
+	ret = kvlib_update("key2", "key2_updated");
+	printf("Trying to update key2:\n");
+	printf(" returns: %d (should be 0 (successful))\n", ret);
+
+    /* Reading updated value */
+	ret = kvlib_get("key2", buffer);
+	printf("Reading the value of an updated key:\n");
+	printf(" returns: %d (should be 0), read: %s (should be key2_updated)\n", ret, buffer);
+
+    /************************ Delete test *******************************/
+
+    /* Delete Test: trying to delete ang key */
+	ret = kvlib_del("key1");
+	printf("Trying to delete a key:\n");
+	printf(" returns: %d (should be 0 (successful))\n", ret);
+
+    /* Reading deleted value */
+	ret = kvlib_get("key1", buffer);
+	printf("Reading the value of deleted key:\n");
+	printf(" returns: %d (should be -3)\n", ret);
+
+
+    /* Reading deleted key */
+	ret = kvlib_del("key2");
+	printf("Trying to delete key2:\n");
+	printf(" returns: %d (should be 0)\n", ret);
+
+    /* Reading deleted value */
+	ret = kvlib_get("key2", buffer);
+	printf("Reading the value of deleted key:\n");
+	printf(" returns: %d (should be -3)\n", ret);
 
 
     /************************ Non-existing key test *******************************/
@@ -85,6 +115,10 @@ int main(void)
 	ret = kvlib_get("key2000", buffer);
 	printf("Trying to get the value of a non-existing key:\n");
 	printf(" returns: %d (should be -3)\n", ret);
+
+
+    /************************ Format again  *******************************/
+
 
 	/* Let's format again before we fill all the flash */
 	ret = kvlib_format();
