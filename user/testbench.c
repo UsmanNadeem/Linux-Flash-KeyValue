@@ -46,11 +46,11 @@ int main(void)
 	printf("\n\n\n*********Testing get: reading keys 1 to 64\n");
 
 	ret = kvlib_get("key1", buffer);
-	// printf("Reading the value of key1:\n");
-	// printf(" returns: %d (should be 0), read: %s (should be val1)\n", ret,
-		// buffer);
+	 printf("Reading the value of key1:\n");
+	 printf(" returns: %d (should be 0), read: %s (should be val1)\n", ret,
+		 buffer);
 
-	ret = kvlib_get("key35", buffer);
+	//ret = kvlib_get("key35", buffer);
 	// printf("Reading the value of key35:\n");
 	// printf(" returns: %d (should be 0), read: %s (should be val35)\n", ret,
 		// buffer);
@@ -59,12 +59,13 @@ int main(void)
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
 		kvlib_get(key, buffer);
-		if (!strcmp(val, buffer)) {
-			printf("************Failed GET: should be \"%s\" got \"%s\"\n", val, buffer);
+		if (strcmp(val, buffer)) {
+			printf("************Failed GET: \n%s:%s\ngot \"%s\"\n", key, val, buffer);
+			exit(EXIT_FAILURE);
 		}
 
 	}
-	printf("************Passed GET\n");
+	 printf("************Passed GET\n");
 
 
     /************************ Update test *******************************/

@@ -393,7 +393,7 @@ static __u32 hash( const char* name) {
  */
 int set_keyval(const char *key, const char *val)
 {
-	int key_len, val_len, i, ret, old_offset;
+	int key_len, val_len, i, ret, old_offset, old_block;
 	char *buffer;
 	directory_entry* dirToAdd;
 	__u32 _hash = hash(key);
@@ -464,6 +464,8 @@ int set_keyval(const char *key, const char *val)
 	//printk("Writing key: %s, Value: %s\n", key, val);
   //  printk("Writing on block: %d, page_offset: %d", config.current_block, config.current_page_offset);
 	old_offset = config.current_page_offset;
+	old_block = config.current_block;
+
     ret =
 	    write_page(config.current_block * config.pages_per_block +
 		       config.current_page_offset, buffer);
@@ -478,11 +480,11 @@ int set_keyval(const char *key, const char *val)
 	// successfully written. Update directory metadata.
 	dirToAdd->keyHash = _hash;
 	dirToAdd->state = KEY_VALID;
-	dirToAdd->block = config.current_block;
+	dirToAdd->block = old_block;
 	// dirToAdd->page_offset = config.current_page_offset-1;  // write_page increases the offset. could give wrong offset 
 														   // if we go to the next page
 	dirToAdd->page_offset = old_offset;
-	
+
 	return 0;
 }
 
