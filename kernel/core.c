@@ -719,6 +719,14 @@ int format()
 	/* was there a driver issue related to the erase oepration? */
 	if (config.format_done == -1)
 		return -1;
+    
+    /* update in-memory metadata */
+    config.dir.list = (directory_entry *) vmalloc((config.MAX_KEYS) * sizeof(directory_entry));
+
+	for (i = 0; i < config.MAX_KEYS; ++i) {
+		config.dir.list[i].keyHash = 0;
+		config.dir.list[i].state = KEY_DELETED;
+	}
 
 	/* update metadata: now all flash blocks and pages are free */
 	for (i = 0; i < config.nb_blocks; i++) {
