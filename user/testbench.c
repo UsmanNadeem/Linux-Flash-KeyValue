@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 /* Library header */
 #include "kvlib.h"
 
@@ -20,6 +21,7 @@ int main(void)
 	printf(" returns: %d (should be 0)\n", ret);
 
 	/* "set" operation test */
+	printf("\n\n\n*********Testing set:\n");
 	ret = kvlib_set("key1", "val1");
 	printf("Insert 1 (key1, val1):\n");
 	printf(" returns: %d (should be 0)\n", ret);
@@ -37,22 +39,37 @@ int main(void)
 		sprintf(val, "val%d", i);
 		ret += kvlib_set(key, val);
 	}
-	printf("Insert 3->65:\n");
+	printf("Insert 3 to 64:\n");
 	printf(" returns: %d (should be 0)\n", ret);
 
 	/* "get" operation test */
+	printf("\n\n\n*********Testing get: reading keys 1 to 64\n");
+
 	ret = kvlib_get("key1", buffer);
-	printf("Reading the value of key1:\n");
-	printf(" returns: %d (should be 0), read: %s (should be val1)\n", ret,
-		buffer);
+	// printf("Reading the value of key1:\n");
+	// printf(" returns: %d (should be 0), read: %s (should be val1)\n", ret,
+		// buffer);
 
 	ret = kvlib_get("key35", buffer);
-	printf("Reading the value of key35:\n");
-	printf(" returns: %d (should be 0), read: %s (should be val35)\n", ret,
-		buffer);
+	// printf("Reading the value of key35:\n");
+	// printf(" returns: %d (should be 0), read: %s (should be val35)\n", ret,
+		// buffer);
+	for (i = 1; i < 65; i++) {
+		char key[128], val[128];
+		sprintf(key, "key%d", i);
+		sprintf(val, "val%d", i);
+		kvlib_get(key, buffer);
+		if (!strcmp(val, buffer)) {
+			printf("************Failed GET: should be \"%s\" got \"%s\"\n", val, buffer);
+		}
+
+	}
+	printf("************Passed GET\n");
+
 
     /************************ Update test *******************************/
 
+	printf("\n\n\n*********Testing update:\n");
 
 	/* Update Test: trying to set a value for an already existing key */
 	ret = kvlib_update("key1", "key1_updated");
@@ -85,6 +102,7 @@ int main(void)
 	printf(" returns: %d (should be 0), read: %s (should be key2_updated)\n", ret, buffer);
 
     /************************ Delete test *******************************/
+	printf("\n\n\n*********Testing del:\n");
 
     /* Delete Test: trying to delete ang key */
 	ret = kvlib_del("key1");
