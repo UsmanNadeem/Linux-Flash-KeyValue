@@ -145,11 +145,13 @@ int main(void)
 
 	/* Fill the flash completely, note that we assume here a small partition
 	 * of 10 blocks, each containing 64 pages */
-	printf ("Insertion 0->639 (flash should be full after that)"
+	printf ("Insertion 0->633 (flash should be full after that)"
 		", may take some time...\n");
 	fflush(stdout);
 	ret = 0;
-	for (i = 0; i < 639; i++) {
+
+    /*METADATA takes about 6 pages for the configuration BLOCKS=10,PAGE_PER_BLOCK=64*/
+	for (i = 0; i < 633; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
@@ -159,7 +161,7 @@ int main(void)
 
 	/* The flash is full and the system should be read-only, let's try to
 	 * add an additional key/value: */
-	ret = kvlib_set("key640", "val640");
+	ret = kvlib_set("key634", "val634");
 	printf("Trying to insert another key/val:\n");
 	printf(" returns: %d (should be -5)\n", ret);
 
