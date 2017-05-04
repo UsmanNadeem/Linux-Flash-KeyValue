@@ -702,7 +702,7 @@ int get_next_free_block()
 	uint64_t min_wipeCount;
 	uint64_t blockToChoose;
 
-
+	// todo check if < 20 percent blocks are free then call garbage collect
 	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
 	blockToChoose = config.metadata_blocks;
 
@@ -721,7 +721,7 @@ int get_next_free_block()
 	// todo set config.current_page_offset if 
 		// the the block is partially empty
 
-	// todo point page offset to middle of the block
+	// todo point page offset to middle of the block if a block is partilly used
 	// todo garbageCollect();
 
 	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
