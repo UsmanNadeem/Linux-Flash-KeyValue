@@ -321,6 +321,7 @@ int initialize_firsttime(int mtd_index)
 	    (blk_info *) vmalloc((config.nb_blocks) * sizeof(blk_info));
 	for (i = 0; i < config.nb_blocks; i++) {
 		config.blocks[i].state = BLK_FREE;
+		config.blocks[i].wipecount = 0;
 		config.blocks[i].pages_states =
 		    (page_state *) vmalloc(config.pages_per_block *
 					   sizeof(page_state));
@@ -749,6 +750,8 @@ int eraseBlock(int blockNum, uint64_t number)
 	/* update metadata: now all flash blocks and pages are free */
 	for (i = blockNum; i < blockNum+number; i++) {
 		config.blocks[i].state = BLK_FREE;
+		config.blocks[i].wipecount++;
+
 		for (j = 0; j < config.pages_per_block; j++)
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}
@@ -771,8 +774,8 @@ int format()
 	/* erasing one or several flash blocks is made through the use of an 
 	 * erase_info structure passed to the MTD NAND driver */
 	ei.mtd = config.mtd;
-	ei.len = ((uint64_t) config.block_size) * ((uint64_t) config.nb_blocks);
-	ei.addr = 0x0;
+	ei.len = ((uint64_t) config.block_size) * ((uint64_t) config.nb_blocks - config.metadata_blocks);
+	ei.addr = ((uint64_t) config.block_size) * ((uint64_t) config.metadata_blocks);
 	/* the erase operation is made aysnchronously and a callback function will
 	 * be executed when the operation is done */
 	ei.callback = format_callback;
@@ -809,8 +812,9 @@ int format()
 	}
 
 	/* update metadata: now all flash blocks and pages are free */
-	for (i = 0; i < config.nb_blocks; i++) {
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 		config.blocks[i].state = BLK_FREE;
+		config.blocks[i].wipecount++;
 		for (j = 0; j < config.pages_per_block; j++)
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}
@@ -823,7 +827,7 @@ int format()
 	config.blocks[config.metadata_blocks].state = BLK_USED;
 
 	printk(PRINT_PREF "Format done\n");
-
+	writeFSMetadata();
 	return 0;
 }
 
