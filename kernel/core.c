@@ -321,7 +321,7 @@ int initialize_firsttime(int mtd_index)
 	    (blk_info *) vmalloc((config.nb_blocks) * sizeof(blk_info));
 	for (i = 0; i < config.nb_blocks; i++) {
 		config.blocks[i].state = BLK_FREE;
-		config.blocks[i].wipecount = 0;
+		config.blocks[i].wipeCount = 0;
 		config.blocks[i].pages_states =
 		    (page_state *) vmalloc(config.pages_per_block *
 					   sizeof(page_state));
@@ -672,10 +672,14 @@ int get_next_page_index_to_write()
 int get_next_free_block()
 {
 	int i;
-
-	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
-		if (config.blocks[i].state == BLK_FREE)
+	uint64_t min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
+	uint64_t blockToChoose = config.metadata_blocks;
+// 
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
+		if (config.blocks[i].state == BLK_FREE) {
 			return i;
+		}
+	}
 
 	/* If we get there, no free block left... */
 
@@ -750,7 +754,7 @@ int eraseBlock(int blockNum, uint64_t number)
 	/* update metadata: now all flash blocks and pages are free */
 	for (i = blockNum; i < blockNum+number; i++) {
 		config.blocks[i].state = BLK_FREE;
-		config.blocks[i].wipecount++;
+		config.blocks[i].wipeCount++;
 
 		for (j = 0; j < config.pages_per_block; j++)
 			config.blocks[i].pages_states[j] = PG_FREE;
@@ -814,7 +818,7 @@ int format()
 	/* update metadata: now all flash blocks and pages are free */
 	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 		config.blocks[i].state = BLK_FREE;
-		config.blocks[i].wipecount++;
+		config.blocks[i].wipeCount++;
 		for (j = 0; j < config.pages_per_block; j++)
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}

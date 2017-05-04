@@ -31,7 +31,7 @@ typedef enum {
  * flash pages it contains */
 typedef struct {
 	blk_state state;
-	unsigned long long int wipeCount;
+	uint64_t wipeCount;
 	unsigned int invalid_pages;	/* number of invalid pages in block. Needed for GC victim block selection */
 	page_state *pages_states;
 } blk_info;
