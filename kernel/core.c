@@ -672,23 +672,41 @@ int get_next_page_index_to_write()
 int get_next_free_block()
 {
 	int i;
-	uint64_t min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
-	uint64_t blockToChoose = config.metadata_blocks;
-// 
+	uint64_t min_wipeCount;
+	uint64_t blockToChoose;
+
+
+	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
+	blockToChoose = config.metadata_blocks;
+
 	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 		if (config.blocks[i].state == BLK_FREE) {
-			return i;
+			if (config.blocks[i].wipeCount < min_wipeCount) {
+				blockToChoose = i;
+			}
 		}
 	}
+	if (config.blocks[blockToChoose].state == BLK_FREE)
+		return blockToChoose;
 
 	/* If we get there, no free block left... */
 
 	// todo set config.current_page_offset if 
 		// the the block is partially empty
 	// todo garbageColect();
-	for (i = config.metadata_blocks; i < config.nb_blocks; i++)
-		if (config.blocks[i].state == BLK_FREE)
-			return i;
+	
+	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
+	blockToChoose = config.metadata_blocks;
+	
+	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
+		if (config.blocks[i].state == BLK_FREE) {
+			if (config.blocks[i].wipeCount < min_wipeCount) {
+				blockToChoose = i;
+			}
+		}
+	}
+	if (config.blocks[blockToChoose].state == BLK_FREE)
+		return blockToChoose;
 
 	return -1;
 }
