@@ -648,7 +648,20 @@ directory_entry *key_exists(const char *key)
 
 void garbageCollect () {
 
-	
+	// wear count : invalid block ratio
+	// choose the block with the lowest ratio
+	// invalid blocks can be zero so take care of that
+	// move the data around
+	// call the eraseblock function on that block 
+
+
+
+todo:
+	// 		remove readonly flag after cleaning a block 
+		// remove readonly flag after deleting a value
+// 
+		// when to write metadata
+		// when to garbage collect
 
 }
 
