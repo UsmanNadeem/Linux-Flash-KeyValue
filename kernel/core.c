@@ -33,6 +33,7 @@ int readFSMetadata(int mtd_index);
 int read_page_mtd(int page_index, char *buf, struct mtd_info *mtd);
 int format(void);
 int eraseBlock(int blockNum, uint64_t number);
+void garbageCollect(void);
 
 lkp_kv_cfg config;
 
@@ -322,6 +323,9 @@ int initialize_firsttime(int mtd_index)
 	for (i = 0; i < config.nb_blocks; i++) {
 		config.blocks[i].state = BLK_FREE;
 		config.blocks[i].wipeCount = 0;
+		config.blocks[i].invalid_pages = 0;
+		config.blocks[i].free_pages = config.pages_per_block;
+
 		config.blocks[i].pages_states =
 		    (page_state *) vmalloc(config.pages_per_block *
 					   sizeof(page_state));
@@ -381,6 +385,7 @@ int initialize_firsttime(int mtd_index)
 void destroy_config(void)  //todo fix
 {
 	int i;
+	writeFSMetadata();
 	put_mtd_device(config.mtd);
 	for (i = 0; i < config.nb_blocks; i++)
 		vfree(config.blocks[i].pages_states);
@@ -484,6 +489,8 @@ int set_keyval(const char *key, const char *val)
   //  printk("Writing on block: %d, page_offset: %d", config.current_block, config.current_page_offset);
 	old_offset = config.current_page_offset;
 	old_block = config.current_block;
+
+	config.blocks[old_block].free_pages--;
 
     ret =
 	    write_page(config.current_block * config.pages_per_block +
@@ -598,6 +605,7 @@ int delete(directory_entry *entry)
         return -1;
     entry->state = KEY_DELETED;
     config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
+    config.blocks[entry->block].invalid_pages++;
     return 0;
 }
 
@@ -636,6 +644,12 @@ directory_entry *key_exists(const char *key)
                 return &(config.dir.list[i]);
 
     return NULL;
+}
+
+void garbageCollect () {
+
+	
+
 }
 
 
@@ -693,8 +707,10 @@ int get_next_free_block()
 
 	// todo set config.current_page_offset if 
 		// the the block is partially empty
-	// todo garbageColect();
-	
+
+	// todo point page offset to middle of the block
+	// todo garbageCollect();
+
 	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
 	blockToChoose = config.metadata_blocks;
 	
@@ -707,6 +723,8 @@ int get_next_free_block()
 	}
 	if (config.blocks[blockToChoose].state == BLK_FREE)
 		return blockToChoose;
+
+	// choose middle of free block
 
 	return -1;
 }
@@ -773,6 +791,8 @@ int eraseBlock(int blockNum, uint64_t number)
 	for (i = blockNum; i < blockNum+number; i++) {
 		config.blocks[i].state = BLK_FREE;
 		config.blocks[i].wipeCount++;
+		config.blocks[i].invalid_pages = 0;
+		config.blocks[i].free_pages = config.pages_per_block;
 
 		for (j = 0; j < config.pages_per_block; j++)
 			config.blocks[i].pages_states[j] = PG_FREE;
@@ -837,6 +857,9 @@ int format()
 	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 		config.blocks[i].state = BLK_FREE;
 		config.blocks[i].wipeCount++;
+		config.blocks[i].invalid_pages = 0;
+		config.blocks[i].free_pages = config.pages_per_block;
+
 		for (j = 0; j < config.pages_per_block; j++)
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}
