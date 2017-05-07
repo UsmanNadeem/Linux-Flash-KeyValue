@@ -34,6 +34,7 @@ int read_page_mtd(int page_index, char *buf, struct mtd_info *mtd);
 int format(void);
 int eraseBlock(int blockNum, uint64_t number);
 void garbageCollect(void);
+int select_block_for_gc(int *, int, int);
 
 lkp_kv_cfg config;
 
@@ -647,8 +648,93 @@ directory_entry *key_exists(const char *key)
     return NULL;
 }
 
+
+int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_garbage_pages) {
+    int i, j;
+    int selected_block_id = -1;
+    unsigned int blk_victim_potential = 0;
+    unsigned int new_blk_victim_potential;
+    bool should_exclude = false;
+
+    for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
+        for (j = 0; j < num_excluded_blocks; j++) {
+            if (i == exclude_blocks[j]) {
+                should_exclude = true;
+                break;
+            }
+        }
+        
+        if (should_exclude)
+            continue;
+
+        if (config.blocks[i].state == BLK_USED) {
+            new_blk_victim_potential =  config.blocks[i].invalid_pages / config.blocks[i].wipeCount;
+            if (new_blk_victim_potential > blk_victim_potential) {
+                if (config.blocks[i].free_pages + config.blocks[i].invalid_pages <= req_garbage_pages) {
+                    selected_block_id = i;
+                    blk_victim_potential = new_blk_victim_potential;
+                }
+            }
+        }
+        should_exclude = false;
+    }
+    return selected_block_id;
+}
+
+
+/**
+ * Function to perform garbage collection.
+ * Selection criteria: block with highest invalid_pages/wipe_count ratio.
+ */
 void garbageCollect () {
 
+    int i;
+    int selected_block_id = 0;
+    int selected_block_ids[config.nb_blocks];
+    int num_selected_blocks = 0;
+    int selected_free_blk_id = -1;
+    unsigned int wipe_count = config.blocks[config.metadata_blocks].wipeCount;
+    unsigned int remaining_pages = config.pages_per_block;
+
+
+    /* Select a free block to move the data */
+    for (i = config.metadata_blocks + 1; i < config.nb_blocks; ++i) {
+        if (config.blocks[i].wipeCount <= wipe_count 
+                && config.blocks[i].state == BLK_FREE) {
+            selected_free_blk_id = i;
+            wipe_count = config.blocks[i].wipeCount;
+        }
+    }    
+    printk(PRINT_PREF "Selected Free block in GC: %d\n", selected_free_blk_id);
+
+  
+    /* Select blocks for garbage collection */
+
+    while (true) {
+        selected_block_id = select_block_for_gc(NULL, 0, remaining_pages);
+        if (selected_block_id == -1) {
+            num_selected_blocks += 1;
+            break;
+        }
+        remaining_pages = (config.blocks[selected_block_id].free_pages + 
+                config.blocks[selected_block_id].invalid_pages);
+        
+        selected_block_ids[num_selected_blocks++] = selected_block_id;
+    }
+
+    /* At this point, num_selected_blocks have been selected for GC and 
+     * their IDs are present in selected_block_ids array */
+
+    //printk(PRINT_PREF "Block selected for GC: %d (invalid_pages = %d, wipe_count = %llu)\n", selected_block_ids, 
+    //        config.blocks[selected_block_ids].invalid_pages, config.blocks[selected_block_id].wipeCount);
+    
+    
+    /* Select a free block to move the data */
+
+    /* Copy all valid data from the block into the RAM and move it to the selected free block */
+
+
+    
 	// wear count : invalid block ratio
 	// choose the block with the lowest ratio
 	// invalid blocks can be zero so take care of that
@@ -771,7 +857,7 @@ void format_callback(struct erase_info *e)
 
 int eraseBlock(int blockNum, uint64_t number)
 {
-	printk(PRINT_PREF "Erasing block %d\n", blockNum);
+	//printk(PRINT_PREF "Erasing block %d\n", blockNum);
 
 	struct erase_info ei;
 	int i, j;
@@ -820,7 +906,7 @@ int eraseBlock(int blockNum, uint64_t number)
 			config.blocks[i].pages_states[j] = PG_FREE;
 	}
 
-	printk(PRINT_PREF "Block(s) erased\n");
+	//printk(PRINT_PREF "Block(s) erased\n");
 
 	return 0;
 }
