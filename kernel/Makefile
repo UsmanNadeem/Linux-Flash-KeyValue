@@ -8,6 +8,8 @@ ARCH=x86_64
 
 TARGET=root@192.168.53.89:~
 
+ccflags-y := -std=gnu99 -Wno-declaration-after-statement
+
 all:
 	make -C $(KERN_DIR) M=$(PWD) ARCH=$(ARCH) modules
 	# cleanup

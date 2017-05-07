@@ -154,7 +154,7 @@ int readFSMetadata(int mtd_index) {
 
 
     /* read page */
-	printk(PRINT_PREF "Read starting from page_index: %d into buffer:0x%x\n", 0, (unsigned int)buffer);
+	printk(PRINT_PREF "Read starting from page_index: %d into buffer:%p\n", 0, (void*)buffer);
 	for (i = 0; i < numPages; ++i) {
 		uint64_t address = ((uint64_t) i) * ((uint64_t) page_size);
 
@@ -166,7 +166,8 @@ int readFSMetadata(int mtd_index) {
 861          * any one ecc region (if applicable; zero otherwise).
 862          */
 			printk(PRINT_PREF "Error: %d in readFSMetadata->read_page_mtd\n", err);
-			printk(PRINT_PREF "Error reading pagesize:%d page_index: %d into buffer:0x%x@0x%x\n", mtd->writesize, i, buffer,address);
+			printk(PRINT_PREF "Error reading pagesize:%d page_index: %d into buffer:%p@0x%x\n", mtd->writesize, i, 
+				(void*)buffer, (unsigned int) address);
 			vfree(buffer);
 			return -1;
 		}
@@ -245,7 +246,7 @@ int readFSMetadata(int mtd_index) {
 
 
     /* read page */
-	printk(PRINT_PREF "Read starting from page_index: %llu into buffer:0x%x\n", tmp_blk_num, (unsigned int)(buffer));
+	printk(PRINT_PREF "Read starting from page_index: %llu into buffer:%p\n", tmp_blk_num, (void*)(buffer));
 	for (i = 0; i < numPages; ++i) {
 		// int read_page(int page_index, char *buf)
 		// 
@@ -255,7 +256,7 @@ int readFSMetadata(int mtd_index) {
 		int err = read_page(address, buffer + baseOffset);
 	    if (err != 0) {
 			printk(PRINT_PREF "Error: %d in readFSMetadata->read_page\n", err);
-			printk(PRINT_PREF "Reading from page_index: %llu into buffer@0x%x\n", address, (unsigned int)(buffer+baseOffset));
+			printk(PRINT_PREF "Reading from page_index: %llu into buffer@%p\n", address, (void*)(buffer+baseOffset));
 			vfree(buffer);
 			return -1;
 		}
@@ -656,7 +657,7 @@ void garbageCollect () {
 
 
 
-todo:
+// todo:
 	// 		remove readonly flag after cleaning a block 
 		// remove readonly flag after deleting a value
 // 
@@ -701,20 +702,26 @@ int get_next_free_block()
 	int i;
 	uint64_t min_wipeCount;
 	uint64_t blockToChoose;
+	printk(PRINT_PREF "*************In get_next_free_block \n");
+
 
 	// todo check if < 20 percent blocks are free then call garbage collect
 	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
 	blockToChoose = config.metadata_blocks;
 
+
 	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 		if (config.blocks[i].state == BLK_FREE) {
-			if (config.blocks[i].wipeCount < min_wipeCount) {
+			if (config.blocks[i].wipeCount <= min_wipeCount) {
 				blockToChoose = i;
 			}
 		}
 	}
-	if (config.blocks[blockToChoose].state == BLK_FREE)
+	if (config.blocks[blockToChoose].state == BLK_FREE) {
+		printk(PRINT_PREF "*************Chosen block = %llu \n", blockToChoose);
 		return blockToChoose;
+	}
+	printk(PRINT_PREF "*************Chosen block = -1\n");
 
 	/* If we get there, no free block left... */
 
@@ -722,6 +729,8 @@ int get_next_free_block()
 		// the the block is partially empty
 
 	// todo point page offset to middle of the block if a block is partilly used
+	// if blk.status = used but blk.freepages > 0
+
 	// todo garbageCollect();
 
 	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
