@@ -32,6 +32,7 @@ typedef enum {
 typedef struct {
 	blk_state state;
 	uint64_t wipeCount;
+	uint64_t free_pages;  // free == available to write
 	unsigned int invalid_pages;	/* number of invalid pages in block. Needed for GC victim block selection */
 	page_state *pages_states;
 } blk_info;

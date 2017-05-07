@@ -3,4 +3,7 @@
 *.cmd
 *.swp
 *.ko
+core_B*
+core_L*
+core_R*
 tags

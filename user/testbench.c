@@ -79,7 +79,8 @@ int persistenceRead(void)
 
 int main(void)
 {
-	return persistenceWrite();  // comment this to lauch read
+	// kvlib_format();
+	// return persistenceWrite();  // comment this to lauch read
 	return persistenceRead();
 	int ret, i;
 	char buffer[128];
