@@ -37,6 +37,7 @@ int eraseBlock(int blockNum, uint64_t number);
 void garbage_collect(void);
 int select_block_for_gc(int *, int, int);
 int get_num_free_blocks(void);
+void print_flash_state(void);
 
 lkp_kv_cfg config;
 
@@ -922,8 +923,10 @@ int get_next_free_block()
 
 
 	// todo check if < 20 percent blocks are free then call garbage collect
-    if ((get_num_free_blocks() * 100) / config.nb_blocks <= 20) 
+    if ((get_num_free_blocks() * 100) / config.nb_blocks <= 20) {
         garbage_collect();
+        print_flash_state();
+    }
 
     /* Here, we select a free block to write. We select a block that has
      * been erased the least number of times to manage wear levelling */
@@ -1313,6 +1316,22 @@ void print_config()
 	printk(PRINT_PREF "pages_per_block: %d\n", config.pages_per_block);
 	printk(PRINT_PREF "metadata_blocks: %d\n", config.metadata_blocks);
 	printk(PRINT_PREF "read_only: %d\n", config.read_only);
+}
+
+/**
+ * Print the state of the flash
+ */
+void print_flash_state() {
+    int i;
+    printk(PRINT_PREF "Flash State : \n");
+    printk(PRINT_PREF "==============\n");
+    for (i = 0; i < config.nb_blocks; i++) {
+        printk(PRINT_PREF "Block: ID: %d - ", i);
+        printk(PRINT_PREF "STATE: %d (0 = free, 1 = used) - ", config.blocks[i].state);
+        printk(PRINT_PREF "Invalid Pages: %d - ", config.blocks[i].invalid_pages);
+        printk(PRINT_PREF "Free Pages: %llu - ", config.blocks[i].free_pages);
+        printk(PRINT_PREF "Erase Count: %llu\n", config.blocks[i].wipeCount);
+    }
 }
 
 /* Setup init and exit functions */
