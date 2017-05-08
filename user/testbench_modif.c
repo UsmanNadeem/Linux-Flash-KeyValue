@@ -77,7 +77,7 @@ int test_update(const char *key, const char *val) {
 
 int main(void)
 {
-    int ret, i;
+    int ret, i, j;
 	char buffer[128];
 	buffer[0] = '\0';
     int errors = 0;
@@ -187,7 +187,7 @@ int main(void)
 
     
     /************************ Test Garbage Collection Here *******************************/
-
+    
  
 	/* Fill the flash completely, note that we assume here a small partition
 	 * of 10 blocks, each containing 64 pages */
@@ -196,8 +196,34 @@ int main(void)
 	fflush(stdout);
 	ret = 0;
 
-    /*METADATA takes about 6 pages for the configuration BLOCKS=10,PAGE_PER_BLOCK=64*/
-	for (i = 0; i < 633; i++) {
+    /* METADATA takes about 6 pages for the configuration BLOCKS=10,PAGE_PER_BLOCK=64 */
+    /* First block is reserved for METADATA, we only have 9 blocks with current config */
+    for (i = 0; i < 9; i++) {
+        for (j = 0; j < 65; j++) {
+            char key[128], val[128];
+            if (j < 60) {
+                sprintf(key, "key%d", i * 64 + j);
+                sprintf(val, "val%d", i * 64 + j);
+                ret += kvlib_set(key, val);
+            }
+            else {
+                /* last 5 pages will be written by updates, this will 
+                 * create 5 invalid pages in the flash block. */
+                sprintf(key, "key%d", (i * 64 + j) - 10);
+                sprintf(val, "val%d_updated", (i * 64 + j) - 10);
+                ret += kvlib_update(key, val);
+            }
+        }
+        /* Delete some pages in this block, later blocks will have more
+         * deleted pages and more chances of being selected for GC. */
+        for (j = 0; j < (1 + i * 2); j++) {
+            char key[128];
+            sprintf(key, "key%d", i * 64 + j);           
+            ret += kvlib_del(key);
+        }
+    }
+
+	for (i = 0; i < 576; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);

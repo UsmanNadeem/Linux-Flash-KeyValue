@@ -12,6 +12,7 @@
 #include "device.h"
 
 #define PRINT_PREF KERN_INFO "[LKP_KV]: "
+#define GC_PREFIX PRINT_PREF "GARBAGE_COLLECTOR: "
 
 /* prototypes */
 int init_config(int mtd_index);
@@ -33,8 +34,9 @@ int readFSMetadata(int mtd_index);
 int read_page_mtd(int page_index, char *buf, struct mtd_info *mtd);
 int format(void);
 int eraseBlock(int blockNum, uint64_t number);
-void garbageCollect(void);
+void garbage_collect(void);
 int select_block_for_gc(int *, int, int);
+int get_num_free_blocks(void);
 
 lkp_kv_cfg config;
 
@@ -540,7 +542,7 @@ int get_keyval(const char *key, char *val)
         if (config.dir.list[i].keyHash == _hash) {
 		/* Key found. Check if the entry is valid */
 		    if (config.dir.list[i].state == KEY_VALID) {
-                printk(PRINT_PREF "Key \"%s\" found\n", key);
+                //printk(PRINT_PREF "Key \"%s\" found\n", key);
                 entry = &config.dir.list[i];
                 break;
 		    }
@@ -652,7 +654,7 @@ directory_entry *key_exists(const char *key)
 int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pages) {
     int i, j;
     int selected_block_id = -1;
-    unsigned int blk_victim_potential = 0;
+    unsigned int blk_victim_potential = UINT_MAX;
     unsigned int new_blk_victim_potential;
     bool should_exclude = false;
 
@@ -668,8 +670,16 @@ int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pa
             continue;
 
         if (config.blocks[i].state == BLK_USED) {
-            new_blk_victim_potential =  config.blocks[i].invalid_pages / config.blocks[i].wipeCount;
-            if (new_blk_victim_potential > blk_victim_potential) {
+ 
+            if (config.blocks[i].invalid_pages == 0)
+                continue;           
+
+            new_blk_victim_potential = (config.blocks[i].wipeCount * 100) / config.blocks[i].invalid_pages;
+ 
+            printk(GC_PREFIX " Block selection: Block: %d - Ranking: %d Invalid_Pages: %d, Erase_Count: %llu\n",
+                    i, new_blk_victim_potential, config.blocks[i].invalid_pages, config.blocks[i].wipeCount);
+           
+            if (new_blk_victim_potential <= blk_victim_potential) {
                 if (config.pages_per_block - (config.blocks[i].free_pages + 
                             config.blocks[i].invalid_pages) <= req_pages) {
                     selected_block_id = i;
@@ -679,6 +689,7 @@ int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pa
         }
         should_exclude = false;
     }
+    //printk(GC_PREFIX "Selected Block For GC (select_block_for_gc): %d\n", selected_block_id);
     return selected_block_id;
 }
 
@@ -687,26 +698,30 @@ int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pa
  * Function to perform garbage collection.
  * Victim block selection criteria: block with highest invalid_pages/wipe_count ratio.
  */
-void garbageCollect () {
+void garbage_collect () {
 
     int i;
     int selected_block_id = 0;
     int selected_block_ids[config.nb_blocks];
     int num_selected_blocks = 0;
     int selected_free_blk_id = -1;
-    unsigned int wipe_count = config.blocks[config.metadata_blocks].wipeCount;
+    unsigned int wipe_count = UINT_MAX;
     unsigned int remaining_pages = config.pages_per_block;
     char *blk_data_buf;
     char *page_data_buf;
 
     /* Select a free block to move the data */
     for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
+        printk(GC_PREFIX " Free Block Selection: Block: %d - Block-state: %d - Erase_Count: %llu\n", i, config.blocks[i].state, config.blocks[i].wipeCount);
         if (config.blocks[i].wipeCount <= wipe_count 
                 && config.blocks[i].state == BLK_FREE) {
             selected_free_blk_id = i;
             wipe_count = config.blocks[i].wipeCount;
         }
     }
+
+    printk(GC_PREFIX "Selected Free block in GC: %d\n", selected_free_blk_id);
+
 
     /* If there was no free block, select a block with minimum number of 
      * valid pages and "garbage collect" it */
@@ -716,7 +731,9 @@ void garbageCollect () {
         config.blocks[config.metadata_blocks].invalid_pages);
 
     if (selected_free_blk_id == -1) {
+        printk(GC_PREFIX "No free block found. Now trying to find block with most garbage\n");
         for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
+            printk(GC_PREFIX "Block: %d - free_pages: %llu - invalid_pages: %d\n", i, config.blocks[i].free_pages, config.blocks[i].invalid_pages);
             if (blk_valid_pages <= config.pages_per_block - 
                     (config.blocks[i].free_pages + 
                      config.blocks[i].invalid_pages)) {
@@ -738,7 +755,7 @@ void garbageCollect () {
     
        
 
-    printk(PRINT_PREF "Selected Free block in GC: %d\n", selected_free_blk_id);
+    printk(GC_PREFIX "Selected Free block in GC: %d\n", selected_free_blk_id);
 
   
     /* Select blocks for garbage collection */
@@ -746,7 +763,7 @@ void garbageCollect () {
     while (true) {
         selected_block_id = select_block_for_gc(selected_block_ids, num_selected_blocks, remaining_pages);
         if (selected_block_id == -1) {
-            num_selected_blocks += 1;
+            //num_selected_blocks += 1;
             break;
         }
         /* keep track of how many pages we can still fill in the selected_free_block */
@@ -760,9 +777,9 @@ void garbageCollect () {
     /* At this point, num_selected_blocks have been selected for GC and 
      * their IDs are present in selected_block_ids array */
     
-    printk(PRINT_PREF "GARBAGE COLLECTOR: Selected Free block: %d\n", selected_free_blk_id);
+    printk(GC_PREFIX "Selected Free block: %d\n", selected_free_blk_id);
     for (i = 0; i < num_selected_blocks; i++) 
-        printk(PRINT_PREF "GARBAGE_COLLECTOR: Selected Block for GC: %d\n", selected_block_ids[i]);
+        printk(GC_PREFIX "Selected Block for GC: %d\n", selected_block_ids[i]);
 
     
     blk_data_buf = (char *) vmalloc(config.pages_per_block * config.page_size);
@@ -774,6 +791,7 @@ void garbageCollect () {
     
     /* Copy all valid data from the blocks selected for GC into the buffer*/
     if (blk_data_buf != NULL && page_data_buf != NULL) {
+        printk(GC_PREFIX " Copying all valid data from GC selected blocks into buffers\n");
         for (i = 0; i < num_selected_blocks; i++) {
             for (j = 0; j < config.pages_per_block; j++) {
                 if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
@@ -794,6 +812,8 @@ void garbageCollect () {
      * again and adjust the current block and page_offset in config.*/
     if(num_selected_blocks == 1 && selected_block_ids[0] == 
             selected_free_blk_id) {
+        printk(GC_PREFIX "No free blocks found. 'Garbage Collecting' data from "
+                "block with most invalid pages\n");
         /* Erase the block and write to it */
         eraseBlock(selected_block_ids[0], 1);
         for (i = 0; i < num_pages_to_write; i++) {
@@ -811,6 +831,8 @@ void garbageCollect () {
 
     /* We get to here because free block is different from the block(s)
      * we are going to erase*/
+    printk(GC_PREFIX "Writing %d pages in block %d\n", num_pages_to_write,
+            selected_free_blk_id);
 
     for (i = 0; i < num_pages_to_write; i++) {
         write_page(page_index + i, blk_data_buf + (i * config.page_size));
@@ -823,7 +845,8 @@ void garbageCollect () {
     config.blocks[selected_free_blk_id].state = BLK_USED;
 
     /* Erase the GC selected blocks */
-    for (i = 0; i < num_selected_blocks; i++) {
+   for (i = 0; i < num_selected_blocks; i++) {
+        printk(GC_PREFIX "Erasing Garbage Collected block: %d\n", selected_block_ids[i]);
         eraseBlock(selected_block_ids[i], 1);
     }
 
@@ -844,6 +867,19 @@ void garbageCollect () {
 		// when to write metadata
 		// when to garbage collect
 
+}
+
+/**
+ * Returns the number of free blocks left in the flash
+ */
+int get_num_free_blocks() {
+    int i;
+    int num_free_blocks = 0;
+    for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
+        if (config.blocks[i].state == BLK_FREE) 
+            num_free_blocks++;   
+    }
+    return num_free_blocks;
 }
 
 
@@ -886,9 +922,14 @@ int get_next_free_block()
 
 
 	// todo check if < 20 percent blocks are free then call garbage collect
-	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
-	blockToChoose = config.metadata_blocks;
+    if ((get_num_free_blocks() * 100) / config.nb_blocks <= 20) 
+        garbage_collect();
 
+    /* Here, we select a free block to write. We select a block that has
+     * been erased the least number of times to manage wear levelling */
+	//min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
+    min_wipeCount = UINT_MAX;
+	blockToChoose = config.metadata_blocks;
 
 	for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 		if (config.blocks[i].state == BLK_FREE) {
@@ -905,13 +946,13 @@ int get_next_free_block()
 
 	/* If we get there, no free block left... */
 
-	// todo set config.current_page_offset if 
+	// TODO: set config.current_page_offset if 
 		// the the block is partially empty
 
 	// todo point page offset to middle of the block if a block is partilly used
 	// if blk.status = used but blk.freepages > 0
 
-	// todo garbageCollect();
+	// TODO: garbageCollect();
 
 	min_wipeCount = config.blocks[config.metadata_blocks].wipeCount;
 	blockToChoose = config.metadata_blocks;
