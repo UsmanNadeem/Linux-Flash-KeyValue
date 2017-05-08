@@ -695,7 +695,8 @@ void garbageCollect () {
     int selected_free_blk_id = -1;
     unsigned int wipe_count = config.blocks[config.metadata_blocks].wipeCount;
     unsigned int remaining_pages = config.pages_per_block;
-
+    char *blk_data_buf;
+    char *page_data_buf;
 
     /* Select a free block to move the data */
     for (i = config.metadata_blocks + 1; i < config.nb_blocks; ++i) {
@@ -724,17 +725,45 @@ void garbageCollect () {
 
     /* At this point, num_selected_blocks have been selected for GC and 
      * their IDs are present in selected_block_ids array */
-
-    //printk(PRINT_PREF "Block selected for GC: %d (invalid_pages = %d, wipe_count = %llu)\n", selected_block_ids, 
-    //        config.blocks[selected_block_ids].invalid_pages, config.blocks[selected_block_id].wipeCount);
     
-    
-    /* Select a free block to move the data */
-
-    /* Copy all valid data from the block into the RAM and move it to the selected free block */
-
+    printk(PRINT_PREF "GARBAGE COLLECTOR: Selected Free block: %d\n", selected_free_blk_id);
+    for (i = 0; i < num_selected_blocks; i++) 
+        printk(PRINT_PREF "GARBAGE_COLLECTOR: Selected Block for GC: %d\n", selected_block_ids[i]);
 
     
+    blk_data_buf = (char *) vmalloc(config.pages_per_block * config.page_size);
+    page_data_buf = (char *) vmalloc(config.page_size);
+    
+    int page_index = 0, j = 0;
+    char * blk_data_buf_offset = blk_data_buf;
+
+    if (blk_data_buf != NULL && page_data_buf != NULL) {
+     /* Copy all valid data from the blocks into the RAM and move it to the selected free block */
+        for (i = 0; i < num_selected_blocks; i++) {
+            for (j = 0; j < config.pages_per_block; j++) {
+                if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
+                     page_index = (selected_block_ids[i] * config.pages_per_block) + j;
+                     read_page(page_index, page_data_buf);
+                     memcpy(blk_data_buf_offset, page_data_buf, config.page_size);
+                     blk_data_buf_offset += config.page_size;
+                }
+            }
+        }
+    }
+
+    /* Write the data into the selected free block */
+    page_index = selected_free_blk_id * config.pages_per_block;
+    for (i = 0; i < config.pages_per_block; i++) {
+        write_page(page_index + i, blk_data_buf + (i * config.page_size));
+    }
+    
+    /* Update free block's state to BLK_USED */
+    config.blocks[selected_free_blk_id].state = BLK_USED;
+    /* Erase the GC selected blocks */
+    for (i = 0; i < num_selected_blocks; i++) {
+        eraseBlock(selected_block_ids[i], 1);
+    }
+
 	// wear count : invalid block ratio
 	// choose the block with the lowest ratio
 	// invalid blocks can be zero so take care of that
