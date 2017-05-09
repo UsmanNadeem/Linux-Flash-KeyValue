@@ -853,13 +853,15 @@ int garbage_collect() {
     int page_index = 0, j = 0;
     
     /* Copy all valid data from the blocks selected for GC into the buffer*/
+    int buf_offset = 0;
     if (blk_data_buf != NULL) {
         printk(GC_PREFIX " Copying all valid data from GC selected blocks into buffers\n");
         for (i = 0; i < num_selected_blocks; i++) {
             for (j = 0; j < config.pages_per_block; j++) {
                 if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
-                    page_index = (selected_block_ids[i] * config.pages_per_block) + j;
-                    read_page(page_index, blk_data_buf + (j * config.page_size));
+                    page_index = (selected_block_ids[i] * config.pages_per_block) + buf_offset;
+                    read_page(page_index, blk_data_buf + (buf_offset * config.page_size));
+                    buf_offset++;
                     //memcpy(blk_data_buf + j * config.page_size, page_data_buf, config.page_size);
                     //blk_data_buf_offset += config.page_size;
                 }
@@ -957,7 +959,7 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
             % config.pages_per_block] = PG_VALID;
 
         /* update metadata in RAM here */
-        printk(GC_PREFIX "Updating metadata for key-val. Block: %d, Key: %d\n",
+        printk(GC_PREFIX "Updating metadata for key-val. Block: %d, Page: %d\n",
                 block_id, page_index + i);
         
         read_key_val_from_page(key, val, buf + (i * config.page_size));
