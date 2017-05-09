@@ -40,6 +40,7 @@ int get_num_free_blocks(void);
 void print_flash_state(void);
 void read_key_val_from_page(char *, char *, char *);
 int move_data(int, int, int, char *);
+int set_up_next_page_to_write(void);
 
 
 lkp_kv_cfg config;
@@ -493,7 +494,7 @@ int set_keyval(const char *key, const char *val)
 	memcpy(buffer + 2 * sizeof(int) + key_len, val, val_len);
 
 	/* actual write on flash */
-	//printk("Writing key: %s, Value: %s\n", key, val);
+	//printk("Writing key: %s, Value: %s, block: %d, page: %d\n", key, val, config.current_block, config.current_page_offset);
   //  printk("Writing on block: %d, page_offset: %d", config.current_block, config.current_page_offset);
 	old_offset = config.current_page_offset;
 	old_block = config.current_block;
@@ -518,7 +519,9 @@ int set_keyval(const char *key, const char *val)
 	// dirToAdd->page_offset = config.current_page_offset-1;  // write_page increases the offset. could give wrong offset 
 														   // if we go to the next page
 	dirToAdd->page_offset = old_offset;
-	writeFSMetadata();   // todo remove from here and set with timer and lock
+	
+    set_up_next_page_to_write();
+    writeFSMetadata();   // TODO: remove from here and set with timer and lock
 	return 0;
 }
 
@@ -685,7 +688,7 @@ void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
     __u32 _hash = hash(key);
     int i;
 	directory_entry *entry = NULL;
- 
+
     //printk("Updating metadata for Key: %s\n", key);
  
     /*Search for key in dictionary entry */
@@ -942,8 +945,8 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
         return -1;
     }
 
-    printk(GC_PREFIX "Writing %d pages in block %d\n", num_pages_to_write,
-            block_id);
+    //printk(GC_PREFIX "Writing %d pages in block %d\n", num_pages_to_write,
+    //        block_id);
 
     for (i = 0; i < num_pages_to_write; i++) {
      	/* compute the flash target address in bytes */
@@ -966,6 +969,7 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
         
         read_key_val_from_page(key, val, buf + (i * config.page_size));
         update_key_val_metadata(key, block_id, i);
+        //printk(GC_PREFIX "MOVE_DATA: Wrote Key %s in block %d at offset %d\n", key, block_id, i);
 
        //write_page(page_index + i, blk_data_buf + (i * config.page_size));
     }
@@ -976,6 +980,8 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
     /* Update free block's state to BLK_USED */
     config.blocks[block_id].state = BLK_USED;
     
+    printk(PRINT_PREF "MOVE_DATA: config.current_block: %d, config.current_block_offset: %d\n", config.current_block, config.current_page_offset);
+
     vfree(key);
     vfree(val);
     return 0;
@@ -1245,6 +1251,28 @@ int format()
 }
 
 /**
+ * Set the flash page to perform next write operation. If the Flash
+ * partition gets full, switch to read-only mode.
+ */
+int set_up_next_page_to_write() {
+    int next_pg_index;
+
+    next_pg_index = get_next_page_index_to_write();
+    if (next_pg_index == -1) {
+        printk(PRINT_PREF "Flash partition is full. Only updates, writes or" 
+                "delete operations can be performed.\n");
+		/* We should not have a read-only mode now.
+        printk(PRINT_PREF
+		       "no free block left... switching to read-only mode\n");
+		config.read_only = 1;
+        */
+		return -1;
+	} 
+    return 0;
+}
+
+
+/**
  * Write the flash page with index page_index, data to write is in buf. 
  * Returns:
  * 0 on success
@@ -1255,11 +1283,11 @@ int write_page(int page_index, const char *buf)
 {
 	uint64_t addr;
 	size_t retlen;
-    int next_pg_index;
 
-	/* if the flash partition is full, dont write */
-	if (config.read_only)
-		return -1;
+	/* if the flash partition is full, dont write
+     * We shouldn't have any read-only mode now. */
+	/*if (config.read_only)
+		return -1;*/
 
 	/* compute the flash target address in bytes */
 	addr = ((uint64_t) page_index) * ((uint64_t) config.page_size);
@@ -1276,15 +1304,6 @@ int write_page(int page_index, const char *buf)
 							   pages_per_block] =
 	    PG_VALID;
 
-	/* set the flash page that will serve the next write oepration.
-	 * if the flash partition is full, switch to read-only mode */
-	next_pg_index = get_next_page_index_to_write();
-    if (next_pg_index == -1) {
-		printk(PRINT_PREF
-		       "no free block left... switching to read-only mode\n");
-		config.read_only = 1;
-		return -1;
-	} 
 	return 0;
 }
 

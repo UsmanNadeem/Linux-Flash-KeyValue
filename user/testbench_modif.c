@@ -116,7 +116,7 @@ int main(void)
         printf(PRINT_PREF " Errors during insertion. errors = %d", errors);
         return -1;
     }
-    printf(PRINT_PREF "Passed Set operation test (Insert Keys 3>65)\n");
+    printf(PRINT_PREF "PASSED: Set operation test (Insert Keys 3>65)\n");
 
 
     /************************ Get operation test ****************************/
@@ -135,7 +135,7 @@ int main(void)
         return -1;
     }
 
-	printf(PRINT_PREF "************Passed GET operation (Get Keys 1->65)\n");
+	printf(PRINT_PREF "PASSED GET operation (Get Keys 1->65)\n");
 
 
     /************************ Update test *******************************/
@@ -153,7 +153,7 @@ int main(void)
         printf(PRINT_PREF "Failed Update. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF "Update test (Keys 1->65) passed\n");
+    printf(PRINT_PREF "PASSED: Update operation (Update Keys 1->65)\n");
 
 
     /************************ Delete test *******************************/
@@ -169,7 +169,7 @@ int main(void)
         printf(PRINT_PREF "Failed Delete. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF "Delete test (Keys 1->65) passed\n");
+    printf(PRINT_PREF "PASSED: Delete operation (Delete Keys 1->65)\n");
 
     /************************ Non-existing key test *******************************/
 
@@ -210,7 +210,7 @@ int main(void)
             sprintf(key, "key%d", i * 65 + j);
             sprintf(val, "val%d", i * 65 + j);
             errors += test_set(key, val);
-            //errors += test_get(key, val);
+           // errors += test_get(key, val);
             if (j < (2 * i + 1)){
                 //printf(PRINT_PREF "Deleting Key: %s\n", key);
                 errors += test_delete(key);
@@ -224,7 +224,7 @@ int main(void)
         printf(PRINT_PREF "Failed in filling flash during GC test. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF "Flash fill operations during GC test successful\n");
+    printf(PRINT_PREF "PASSED: Flash fill operations during GC test successful\n");
 
     /* Test that all the inserted values are in the Flash */
     for (i = 0; i < 9; i++) {
@@ -233,7 +233,7 @@ int main(void)
             if (j >= (2 * i + 1)) {
                 sprintf(key, "key%d", i * 65 + j);
                 sprintf(val, "val%d", i * 65 + j);
-                printf(PRINT_PREF "Trying to get key:  %s\n", key);
+                //printf(PRINT_PREF "Trying to get key:  %s\n", key);
                 errors += test_get(key, val);
             }
             else {
