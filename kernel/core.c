@@ -674,7 +674,7 @@ void read_key_val_from_page(char *key, char *val, char *buffer) {
         memcpy(val, cur_val, val_len);
         val[val_len] = '\0';
     }
-    printk(GC_PREFIX "Read key from page: Key: %s, Val: %s\n", key, val);
+//    printk(GC_PREFIX "Read key from page: Key: %s, Val: %s\n", key, val);
     
 }
 
@@ -959,8 +959,8 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
             % config.pages_per_block] = PG_VALID;
 
         /* update metadata in RAM here */
-        printk(GC_PREFIX "Updating metadata for key-val. Block: %d, Page: %d\n",
-                block_id, page_index + i);
+       // printk(GC_PREFIX "Updating metadata for key-val. Block: %d, Page: %d\n",
+       //         block_id, page_index + i);
         
         read_key_val_from_page(key, val, buf + (i * config.page_size));
         update_key_val_metadata(key, block_id, page_index + i);
@@ -968,7 +968,7 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
        //write_page(page_index + i, blk_data_buf + (i * config.page_size));
     }
 
-    config.blocks[block_id].free_pages = config.page_size - num_pages_to_write;
+    config.blocks[block_id].free_pages = config.pages_per_block - num_pages_to_write;
     config.current_block = block_id;
     config.current_page_offset = num_pages_to_write;
     /* Update free block's state to BLK_USED */
