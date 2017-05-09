@@ -7,7 +7,8 @@
 #include <linux/mtd/mtd.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
-
+#include <linux/kthread.h>
+#include <linux/delay.h>
 #include "core.h"
 #include "device.h"
 
@@ -42,9 +43,13 @@ void read_key_val_from_page(char *, char *, char *);
 int move_data(int, int, int, char *);
 int set_up_next_page_to_write(void);
 void update_key_val_metadata(char *, int, int);
- 
+static int write_fs_metadata_func(void *); 
 
 lkp_kv_cfg config;
+int write_data_to_flash = 0;
+struct task_struct *write_fs_metadata;
+//struct mutex *metadata_write_lock;
+DEFINE_MUTEX(metadata_write_mutex);
 
 /* The module takes one parameter which is the index of the target flash
  * partition */
@@ -68,7 +73,8 @@ static int __init lkp_kv_init(void)
 		printk(PRINT_PREF "Virtual device creation error\n");
 		return -1;
 	}
-
+    write_fs_metadata = kthread_run(write_fs_metadata_func, 
+            NULL, "write_fs_metadata");
 	return 0;
 }
 
@@ -77,7 +83,14 @@ static int __init lkp_kv_init(void)
  */
 static void __exit lkp_kv_exit(void)
 {
-	printk(PRINT_PREF "Exiting ... \n");
+    mutex_lock(&metadata_write_mutex);
+    if (write_data_to_flash) {
+        writeFSMetadata();
+        write_data_to_flash = 0;
+    }
+    mutex_unlock(&metadata_write_mutex);
+    kthread_stop(write_fs_metadata);
+    printk(PRINT_PREF "Exiting ... \n");
 	device_exit();
 	destroy_config();
 }
@@ -96,16 +109,30 @@ int init_config(int mtd_index)
 
 
 	printk(PRINT_PREF "Trying to read existing metadata\n");
+    
 	if (readFSMetadata(mtd_index) == -1) {
 		printk(PRINT_PREF "Init metadata read error.\n\n*************Creating new metadata and formating.\n");
 		return initialize_firsttime(mtd_index);
 	}
 	printk(PRINT_PREF "*************Using old metadata.\n");
 
-
-
-
 	return 0;
+}
+
+
+static int write_fs_metadata_func(void *data) {
+    printk(PRINT_PREF "write_fs_metadata_func invoked\n");
+    while (!kthread_should_stop()) {
+        mutex_lock(&metadata_write_mutex);
+        if (write_data_to_flash) {
+            writeFSMetadata();
+            write_data_to_flash = 0;
+            printk(PRINT_PREF "Writing metadata to Flash\n");
+        }
+        mutex_unlock(&metadata_write_mutex);
+        msleep(500);
+    }
+    do_exit(0);
 }
 
 
@@ -386,7 +413,10 @@ int initialize_firsttime(int mtd_index)
 		config.dir.list[i].state = KEY_DELETED;
 	}
 	format();
-	writeFSMetadata();
+	//writeFSMetadata();
+    mutex_lock(&metadata_write_mutex);
+    write_data_to_flash = 1;
+    mutex_unlock(&metadata_write_mutex);
 	return 0;
 }
 
@@ -396,8 +426,11 @@ int initialize_firsttime(int mtd_index)
 void destroy_config(void)  //todo fix
 {
 	int i;
-	writeFSMetadata();
-	put_mtd_device(config.mtd);
+	//writeFSMetadata();
+    mutex_lock(&metadata_write_mutex);
+	write_data_to_flash = 1;
+    mutex_unlock(&metadata_write_mutex);
+    put_mtd_device(config.mtd);
 	for (i = 0; i < config.nb_blocks; i++)
 		vfree(config.blocks[i].pages_states);
 	vfree(config.blocks);
@@ -531,8 +564,11 @@ int set_keyval(const char *key, const char *val)
 	dirToAdd->page_offset = old_offset;
 	
     set_up_next_page_to_write();
-    writeFSMetadata();   // TODO: remove from here and set with timer and lock
-	return 0;
+    //writeFSMetadata();   // TODO: remove from here and set with timer and lock
+	mutex_lock(&metadata_write_mutex);
+    write_data_to_flash = 1;
+    mutex_unlock(&metadata_write_mutex);
+    return 0;
 }
 
 /**
@@ -1284,7 +1320,10 @@ int format()
 	config.blocks[config.metadata_blocks].state = BLK_USED;
 
 	printk(PRINT_PREF "Format done\n");
-	writeFSMetadata();
+	//writeFSMetadata();
+    mutex_lock(&metadata_write_mutex);
+    write_data_to_flash = 1;
+    mutex_unlock(&metadata_write_mutex);
 	return 0;
 }
 
@@ -1436,6 +1475,7 @@ void writeFSMetadata(void) {
 
 				printk(PRINT_PREF "Error writing metadata\n");
 				vfree(buffer);
+                //write_data_to_flash = 0;
 				return;
 		}
 	}
@@ -1470,11 +1510,13 @@ void writeFSMetadata(void) {
 
 				printk(PRINT_PREF "Error writing metadata\n");
 				vfree(buffer);
+                //write_data_to_flash = 0;
 				return;
 		}
 	}
 
 	vfree(buffer);
+    //write_data_to_flash = 0;
 }
 
 
