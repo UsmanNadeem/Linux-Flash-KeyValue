@@ -951,8 +951,11 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
 	    /* call the NAND driver MTD to perform the write operation */
 	    if (config.mtd->
 	        _write(config.mtd, addr, config.page_size, &retlen, 
-                buf + (i * config.page_size)) != 0)
+                buf + (i * config.page_size)) != 0) {
+	    	    vfree(key);
+			    vfree(val);
             return -2;
+	    }
 
         config.blocks[block_id].pages_states[(page_index + i) 
             % config.pages_per_block] = PG_VALID;
