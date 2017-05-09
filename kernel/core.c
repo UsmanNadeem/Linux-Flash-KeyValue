@@ -686,8 +686,8 @@ void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
     int i;
 	directory_entry *entry = NULL;
  
-    //printk("Updating metadata for Key: %s\n", key);
-
+    printk("Updating metadata for Key: %s\n", key);
+ 
     /*Search for key in dictionary entry */
     for (i = 0; i < config.MAX_KEYS; ++i) {
         if (config.dir.list[i].keyHash == _hash) {
@@ -701,6 +701,7 @@ void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
     }
     
     if (entry) {
+        printk("Updating metadata for Key: %s\n", key);
         /* update metadata here */ 
         entry->block = new_block;
         entry->page_offset = new_page_offset;

@@ -52,10 +52,16 @@ int test_format() {
 
 int test_delete(const char *key) {
     int ret = 0;
+    char buffer[128];
 
     ret = kvlib_del(key);
     if (ret != 0) {
         printf(PRINT_PREF "Delete (kvlib_del) failed for key: %s. Returned value: %d\n", key, ret);
+        return -1;
+    }
+    ret = kvlib_get(key, buffer);
+    if (ret != -3) {
+        printf(PRINT_PREF "ERROR: Key (kvlib_del) was not deleted. Key: %s\n", key);
         return -1;
     }
     return 0;
@@ -206,6 +212,7 @@ int main(void)
             errors += test_set(key, val);
             //errors += test_get(key, val);
             if (j < (2 * i + 1)){
+                //printf(PRINT_PREF "Deleting Key: %s\n", key);
                 errors += test_delete(key);
             }
         }
@@ -227,6 +234,10 @@ int main(void)
                 sprintf(key, "key%d", i * 65 + j);
                 sprintf(val, "val%d", i * 65 + j);
                 errors += test_get(key, val);
+            }
+            else {
+                //sprintf(key, "key%d", i * 65 + j);
+                //printf(PRINT_PREF "Ignoring keys: %s\n", key);
             }
         }
     }
