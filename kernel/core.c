@@ -767,8 +767,6 @@ int garbage_collect() {
     unsigned int wipe_count = UINT_MAX;
     unsigned int remaining_pages = config.pages_per_block;
     char *blk_data_buf;
-    size_t retlen;
-    uint64_t addr;
 
     /* Select a free block to move the data */
     for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
@@ -963,7 +961,7 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
        //         block_id, page_index + i);
         
         read_key_val_from_page(key, val, buf + (i * config.page_size));
-        update_key_val_metadata(key, block_id, page_index + i);
+        update_key_val_metadata(key, block_id, i);
 
        //write_page(page_index + i, blk_data_buf + (i * config.page_size));
     }
