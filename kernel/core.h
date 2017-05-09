@@ -70,6 +70,7 @@ typedef struct {
 	directory dir;	/* mapping from key to block */
 	uint64_t MAX_KEYS;
 	unsigned int metadata_blocks;
+    int invoke_gc;
 } lkp_kv_cfg;
 
 /* export some prototypes for function used in the virtual device file */

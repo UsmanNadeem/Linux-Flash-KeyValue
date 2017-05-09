@@ -41,7 +41,8 @@ void print_flash_state(void);
 void read_key_val_from_page(char *, char *, char *);
 int move_data(int, int, int, char *);
 int set_up_next_page_to_write(void);
-
+void update_key_val_metadata(char *, int, int);
+ 
 
 lkp_kv_cfg config;
 
@@ -312,6 +313,7 @@ int initialize_firsttime(int mtd_index)
 		return -1;
 	config.format_done = 0;
 	config.read_only = 0;
+    config.invoke_gc = 0;
 	config.block_size = config.mtd->erasesize;
 	config.page_size = config.mtd->writesize;
 	config.pages_per_block = config.block_size / config.page_size;
@@ -431,6 +433,13 @@ int set_keyval(const char *key, const char *val)
 	directory_entry* dirToAdd;
 	__u32 _hash = hash(key);
 
+    if (config.read_only) {
+        if (config.invoke_gc)
+            garbage_collect();
+        else
+            return -3;
+    }
+
 	key_len = strlen(key);
 	val_len = strlen(val);
 	dirToAdd = NULL;
@@ -499,8 +508,6 @@ int set_keyval(const char *key, const char *val)
 	old_offset = config.current_page_offset;
 	old_block = config.current_block;
 
-	config.blocks[old_block].free_pages--;
-
     ret =
 	    write_page(config.current_block * config.pages_per_block +
 		       config.current_page_offset, buffer);
@@ -511,7 +518,10 @@ int set_keyval(const char *key, const char *val)
 		return -3;
 	else if (ret == -2)	/* write error */
 		return -4;
-    
+
+    /* update free_pages only if write operation was successful */
+    config.blocks[old_block].free_pages--;
+  
 	// successfully written. Update directory metadata.
 	dirToAdd->keyHash = _hash;
 	dirToAdd->state = KEY_VALID;
@@ -617,6 +627,8 @@ int delete(directory_entry *entry)
     entry->state = KEY_DELETED;
     config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
     config.blocks[entry->block].invalid_pages++;
+    if (config.read_only)
+        config.invoke_gc = 1;
     return 0;
 }
 
@@ -659,7 +671,7 @@ directory_entry *key_exists(const char *key)
 
 
 /**
- *
+ * Reads a key and value from the provided buffer into the key and val buffers
  */
 void read_key_val_from_page(char *key, char *val, char *buffer) {
 
@@ -713,9 +725,11 @@ void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
 
 
 /**
- *
+ * Selects a block to garbage collect.
+ * TODO: Detail description here.
  */
-int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pages) {
+int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks,
+        int req_pages) {
     int i, j;
     int selected_block_id = -1;
     unsigned int blk_victim_potential = UINT_MAX;
@@ -738,10 +752,13 @@ int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pa
             if (config.blocks[i].invalid_pages == 0)
                 continue;           
 
-            new_blk_victim_potential = (config.blocks[i].wipeCount * 100) / config.blocks[i].invalid_pages;
+            new_blk_victim_potential = (config.blocks[i].wipeCount * 100) / 
+                config.blocks[i].invalid_pages;
  
-//            printk(GC_PREFIX " Block selection: Block: %d - Ranking: %d Invalid_Pages: %d, Erase_Count: %llu\n",
-//                   i, new_blk_victim_potential, config.blocks[i].invalid_pages, config.blocks[i].wipeCount);
+            /*printk(GC_PREFIX " Block selection: Block: %d - Ranking: %d" 
+                    "Invalid_Pages: %d, Erase_Count: %llu\n", i, 
+                    new_blk_victim_potential, config.blocks[i].invalid_pages,
+                    config.blocks[i].wipeCount);*/
            
             if (new_blk_victim_potential <= blk_victim_potential) {
                 if (config.pages_per_block - (config.blocks[i].free_pages + 
@@ -753,7 +770,9 @@ int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pa
         }
         should_exclude = false;
     }
-    //printk(GC_PREFIX "Selected Block For GC (select_block_for_gc): %d\n", selected_block_id);
+    /*printk(GC_PREFIX "Selected Block For GC (select_block_for_gc): %d\n",
+            selected_block_id);*/
+
     return selected_block_id;
 }
 
@@ -774,7 +793,7 @@ int garbage_collect() {
 
     /* Select a free block to move the data */
     for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
-//        printk(GC_PREFIX " Free Block Selection: Block: %d - Block-state: %d - Erase_Count: %llu\n", i, config.blocks[i].state, config.blocks[i].wipeCount);
+        //printk(GC_PREFIX " Free Block Selection: Block: %d - Block-state: %d - Erase_Count: %llu\n", i, config.blocks[i].state, config.blocks[i].wipeCount);
         if (config.blocks[i].wipeCount <= wipe_count 
                 && config.blocks[i].state == BLK_FREE) {
             selected_free_blk_id = i;
@@ -782,7 +801,7 @@ int garbage_collect() {
         }
     }
 
-    printk(GC_PREFIX "Selected Free block in GC: %d\n", selected_free_blk_id);
+    //printk(GC_PREFIX "Selected Free block in GC: %d\n", selected_free_blk_id);
 
 
     /* If there was no free block, select a block with minimum number of 
@@ -795,7 +814,7 @@ int garbage_collect() {
     if (selected_free_blk_id == -1) {
         printk(GC_PREFIX "No free block found. Now trying to find block with most garbage\n");
         for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
-            printk(GC_PREFIX "Block: %d - free_pages: %llu - invalid_pages: %d\n", i, config.blocks[i].free_pages, config.blocks[i].invalid_pages);
+            //printk(GC_PREFIX "Block: %d - free_pages: %llu - invalid_pages: %d\n", i, config.blocks[i].free_pages, config.blocks[i].invalid_pages);
             if (config.pages_per_block - (config.blocks[i].free_pages + 
                      config.blocks[i].invalid_pages) <= blk_valid_pages) {
                 selected_free_blk_id = i;
@@ -803,6 +822,18 @@ int garbage_collect() {
                     (config.blocks[i].free_pages + config.blocks[i].invalid_pages);
             }
         }
+        if (blk_valid_pages == config.pages_per_block) {
+            /* the block with minimum number of valid pages is also full.
+             * Set read-only state. */ 
+            printk(GC_PREFIX "Flash is full. GC cannot find any free space."
+                    " Setting to Read-only mode. Some data has to be deleted"
+                    " before any further writes/updates.\n"); 
+            config.current_block = -1;
+            config.current_page_offset = -1;
+            config.read_only = 1;
+            return -1;
+        }
+
         /* Now, we have a block with minimum # of valid pages which we will  
          * write to. Add this block to selected_block_ids so that its data 
          * can also be selected for garbage collection. We also need to find 
@@ -815,7 +846,7 @@ int garbage_collect() {
     }
     
        
-    printk(GC_PREFIX "Selected Free block in GC: %d\n", selected_free_blk_id);
+    //printk(GC_PREFIX "Selected Free block in GC: %d\n", selected_free_blk_id);
 
   
     /* Select blocks for garbage collection */
@@ -833,6 +864,7 @@ int garbage_collect() {
         selected_block_ids[num_selected_blocks++] = selected_block_id;
     
     }
+    /* No block was selected for GC. However a free block was found */
     if (num_selected_blocks == 0 && selected_free_blk_id != -1) {
         printk(GC_PREFIX "No block found for GC (invalid_pages = 0). Free block = %d\n", selected_free_blk_id);
         config.current_block = selected_free_blk_id;
@@ -857,7 +889,7 @@ int garbage_collect() {
     /* Copy all valid data from the blocks selected for GC into the buffer*/
     int buf_offset = 0;
     if (blk_data_buf != NULL) {
-        printk(GC_PREFIX " Copying all valid data from GC selected blocks into buffers\n");
+        //printk(GC_PREFIX " Copying all valid data from GC selected blocks into buffers\n");
         for (i = 0; i < num_selected_blocks; i++) {
             for (j = 0; j < config.pages_per_block; j++) {
                 if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
@@ -979,8 +1011,14 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
     config.current_page_offset = num_pages_to_write;
     /* Update free block's state to BLK_USED */
     config.blocks[block_id].state = BLK_USED;
-    
-    printk(PRINT_PREF "MOVE_DATA: config.current_block: %d, config.current_block_offset: %d\n", config.current_block, config.current_page_offset);
+    if (config.read_only) {
+        config.read_only = 0;
+        if (config.invoke_gc) {
+            config.invoke_gc = 0;
+        }
+    } 
+
+    //printk(PRINT_PREF "MOVE_DATA: config.current_block: %d, config.current_block_offset: %d\n", config.current_block, config.current_page_offset);
 
     vfree(key);
     vfree(val);
@@ -1046,13 +1084,13 @@ int get_next_free_block()
 	int i;
 	uint64_t min_wipeCount;
 	uint64_t blockToChoose;
-	printk(PRINT_PREF "*************In get_next_free_block \n");
+	printk(PRINT_PREF "In get_next_free_block \n");
 
 
 	// todo check if < 20 percent blocks are free then call garbage collect
     if ((get_num_free_blocks() * 100) / config.nb_blocks <= 20) {
         garbage_collect();
-        print_flash_state();
+        //print_flash_state();
         return -2;
     }
 
@@ -1259,13 +1297,10 @@ int set_up_next_page_to_write() {
 
     next_pg_index = get_next_page_index_to_write();
     if (next_pg_index == -1) {
-        printk(PRINT_PREF "Flash partition is full. Only updates, writes or" 
-                "delete operations can be performed.\n");
-		/* We should not have a read-only mode now.
         printk(PRINT_PREF
 		       "no free block left... switching to read-only mode\n");
 		config.read_only = 1;
-        */
+        
 		return -1;
 	} 
     return 0;
@@ -1284,10 +1319,9 @@ int write_page(int page_index, const char *buf)
 	uint64_t addr;
 	size_t retlen;
 
-	/* if the flash partition is full, dont write
-     * We shouldn't have any read-only mode now. */
-	/*if (config.read_only)
-		return -1;*/
+	/* if the flash partition is full, dont write*/
+	if (config.read_only)
+		return -1;
 
 	/* compute the flash target address in bytes */
 	addr = ((uint64_t) page_index) * ((uint64_t) config.page_size);

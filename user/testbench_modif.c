@@ -9,19 +9,24 @@
 #include "kvlib.h"
 
 #define PRINT_PREF  "[ TESTBENCH ]: "
+#define KGRN  "\x1B[32m"
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
 
-int test_set(const char *key, const char *val);
+int test_set(const char *key, const char *val, int expected_return);
 int test_get(const char *key, const char *val);
 int test_delete(const char *key);
 int test_format();
 int test_update(const char *key, const char *val);
 
-int test_set(const char *key, const char *val) {
+int test_set(const char *key, const char *val, int expected_return) {
     int ret = 0;
 
     ret = kvlib_set(key, val);
-    if (ret != 0) {
-        printf(PRINT_PREF "Set (kvlib_set) failed with inputs %s and %s. Returned value: %d\n", key, val, ret);
+    if (ret != expected_return) {
+        printf(PRINT_PREF "Set (kvlib_set) failed with inputs %s and %s."
+                "Expected return value: %d, Returned value: %d\n", 
+                key, val, expected_return, ret);
         return -1;
     }
     return 0;
@@ -87,7 +92,7 @@ int main(void)
 	char buffer[128];
 	buffer[0] = '\0';
     int errors = 0;
-
+    printf(KNRM);
 	/* first let's format the partition to make sure we operate on a 
 	 * well-known state */
     errors += test_format();
@@ -95,10 +100,10 @@ int main(void)
     /* "set" operation test */
 	printf("\n\n\n" PRINT_PREF "*********Testing set:\n");
 
-    errors += test_set("key1", "val1");
+    errors += test_set("key1", "val1", 0);
 	printf(PRINT_PREF "Insert 1 (key1, val1):\n");
 	
-	errors += test_set("key2", "val2");
+	errors += test_set("key2", "val2", 0);
 	printf(PRINT_PREF "Insert 2 (key2, val2):\n");
 
 
@@ -110,13 +115,13 @@ int main(void)
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
-		errors += test_set(key, val);
+		errors += test_set(key, val, 0);
 	}
     if (errors != 0) {
         printf(PRINT_PREF " Errors during insertion. errors = %d", errors);
         return -1;
     }
-    printf(PRINT_PREF "PASSED: Set operation test (Insert Keys 3>65)\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Set operation test (Insert Keys 3>65)\n");
 
 
     /************************ Get operation test ****************************/
@@ -135,7 +140,7 @@ int main(void)
         return -1;
     }
 
-	printf(PRINT_PREF "PASSED GET operation (Get Keys 1->65)\n");
+	printf(PRINT_PREF KGRN "PASSED " KNRM "GET operation (Get Keys 1->65)\n");
 
 
     /************************ Update test *******************************/
@@ -153,7 +158,7 @@ int main(void)
         printf(PRINT_PREF "Failed Update. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF "PASSED: Update operation (Update Keys 1->65)\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Update operation (Update Keys 1->65)\n");
 
 
     /************************ Delete test *******************************/
@@ -169,7 +174,7 @@ int main(void)
         printf(PRINT_PREF "Failed Delete. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF "PASSED: Delete operation (Delete Keys 1->65)\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Delete operation (Delete Keys 1->65)\n");
 
     /************************ Non-existing key test *******************************/
 
@@ -209,7 +214,7 @@ int main(void)
             char key[128], val[128];
             sprintf(key, "key%d", i * 65 + j);
             sprintf(val, "val%d", i * 65 + j);
-            errors += test_set(key, val);
+            errors += test_set(key, val, 0);
            // errors += test_get(key, val);
             if (j < (2 * i + 1)){
                 //printf(PRINT_PREF "Deleting Key: %s\n", key);
@@ -224,7 +229,7 @@ int main(void)
         printf(PRINT_PREF "Failed in filling flash during GC test. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF "PASSED: Flash fill operations during GC test successful\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Flash fill operations during GC test successful\n");
 
     /* Test that all the inserted values are in the Flash */
     for (i = 0; i < 9; i++) {
@@ -247,15 +252,106 @@ int main(void)
         printf(PRINT_PREF "Failed in validating flash state after GC. Errors = %d\n", errors);
         return -1;
     }
-     printf(PRINT_PREF "PASSED: Flash state successfully validated after GC\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Flash state successfully validated after GC\n");
+    
+    /* Fill the flash completely */
+    
+    for (i = 1000; i < 1072; i++) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        errors += test_set(key, val, 0);
+    }
+    if (errors != 0) {
+        printf(PRINT_PREF "Failed in completely filling the flash. Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Flash completely full\n");
+ 
 
-    /* Total 81 keys were deleted above. We should be able to insert 81 K-V pairs */
+    /* Flash is full and in read-only mode, These writes should fail with ret=-5*/
+    for (i = 1072; i < 1080; i++) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        errors += test_set(key, val, -5);
+    }
+    if (errors != 0) {
+        printf(PRINT_PREF "Flash should be in RO mode here. No writes allowed."
+                "Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Writes in RO mode unsuccessful\n");
+    
+    
+    /* Now, delete 5 keys and try to insert 5 keys */
+    for (i = 1000; i < 1005; i++) {
+        char key[128];
+        sprintf(key, "key%d", i);
+        errors += test_delete(key);       
+    }
+    if (errors != 0) {
+        printf(PRINT_PREF "The keys should have been deleted successfully.."
+                "Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Deletes in a full flash successfull\n");
+    /* Let's insert and full the flash again*/
+    for (i = 10000; i < 10005; i++) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        errors += test_set(key, val, 0);       
+    }
+    if (errors != 0) {
+        printf(PRINT_PREF "The keys should have been inserted successfully.."
+                "Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Deletes freed up some space." 
+            " Writes are now successfull. Flash is full again\n");
 
-    /* The flash is full and the system should be read-only, let's try to
-	 * add an additional key/value: */
-	ret = kvlib_set("key634", "val634");
-	printf(PRINT_PREF "Trying to insert another key/val:\n");
-	printf(PRINT_PREF " returns: %d (should be -5)\n", ret);
+
+
+    /* Flash was full. Do some deletes so that valid pages in two blocks
+     * can fill up a free block. After this deletion, GC will move data
+     * from more than 1 blocks into a free block.  */
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 65; j++) {
+            char key[128];
+            if (j >= (2 * i + 1) && j <= 40) {
+                sprintf(key, "key%d", i * 65 + j);
+                errors += test_delete(key);
+            }
+        }
+    }
+
+    if (errors != 0) {
+        printf(PRINT_PREF KRED "FAILED:" KNRM " Could not delete some keys." 
+                " Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Successfully freed up some space" 
+            " in the flash. Note that the GC will free up more that one blocks"
+             " during garbage collection.\n");
+    
+
+    /* Let's insert some keys so that GC is invoked */
+    for (i = 20000; i < 20010; i++) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        errors += test_set(key, val, 0);       
+    }
+    if (errors != 0) {
+        printf(PRINT_PREF KRED "FAILED:" KNRM " The keys should have been"
+                " inserted successfully. Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Deletes had freed up some space." 
+            " Writes are now successfull.\n");
+
+
 
 	/* Format again */
 	ret = kvlib_format();
