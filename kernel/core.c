@@ -38,6 +38,9 @@ int garbage_collect(void);
 int select_block_for_gc(int *, int, int);
 int get_num_free_blocks(void);
 void print_flash_state(void);
+void read_key_val_from_page(char *, char *, char *);
+int move_data(int, int, int, char *);
+
 
 lkp_kv_cfg config;
 
@@ -490,7 +493,7 @@ int set_keyval(const char *key, const char *val)
 	memcpy(buffer + 2 * sizeof(int) + key_len, val, val_len);
 
 	/* actual write on flash */
-	printk("Writing key: %s, Value: %s\n", key, val);
+	//printk("Writing key: %s, Value: %s\n", key, val);
   //  printk("Writing on block: %d, page_offset: %d", config.current_block, config.current_page_offset);
 	old_offset = config.current_page_offset;
 	old_block = config.current_block;
@@ -652,6 +655,62 @@ directory_entry *key_exists(const char *key)
 }
 
 
+/**
+ *
+ */
+void read_key_val_from_page(char *key, char *val, char *buffer) {
+
+    int key_len, val_len;
+    char *cur_key, *cur_val;
+
+    memcpy(&key_len, buffer, sizeof(int));
+    memcpy(&val_len, buffer + sizeof(int), sizeof(int));
+       
+    if (key_len != 0xFFFFFFFF) {
+        cur_key = buffer + 2 * sizeof(int);
+        cur_val = buffer + 2 * sizeof(int) + key_len;
+        memcpy(key, cur_key, key_len);
+        key[key_len] = '\0';
+        memcpy(val, cur_val, val_len);
+        val[val_len] = '\0';
+    }
+    printk(GC_PREFIX "Read key from page: Key: %s, Val: %s\n", key, val);
+    
+}
+
+/**
+ * Update metadata for a Key in RAM
+ */
+void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
+    __u32 _hash = hash(key);
+    int i;
+	directory_entry *entry = NULL;
+ 
+    //printk("Updating metadata for Key: %s\n", key);
+
+    /*Search for key in dictionary entry */
+    for (i = 0; i < config.MAX_KEYS; ++i) {
+        if (config.dir.list[i].keyHash == _hash) {
+		/* Key found. Check if the entry is valid */
+		    if (config.dir.list[i].state == KEY_VALID) {
+                //printk(PRINT_PREF "Key \"%s\" found\n", key);
+                entry = &config.dir.list[i];
+                break;
+		    }
+		}
+    }
+    
+    if (entry) {
+        /* update metadata here */ 
+        entry->block = new_block;
+        entry->page_offset = new_page_offset;
+    }
+}
+
+
+/**
+ *
+ */
 int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks, int req_pages) {
     int i, j;
     int selected_block_id = -1;
@@ -708,7 +767,6 @@ int garbage_collect() {
     unsigned int wipe_count = UINT_MAX;
     unsigned int remaining_pages = config.pages_per_block;
     char *blk_data_buf;
-    char *page_data_buf;
     size_t retlen;
     uint64_t addr;
 
@@ -792,22 +850,18 @@ int garbage_collect() {
 
     
     blk_data_buf = (char *) vmalloc(config.pages_per_block * config.page_size);
-    page_data_buf = (char *) vmalloc(config.page_size);
-    
     int page_index = 0, j = 0;
-    char * blk_data_buf_offset = blk_data_buf;
-
     
     /* Copy all valid data from the blocks selected for GC into the buffer*/
-    if (blk_data_buf != NULL && page_data_buf != NULL) {
+    if (blk_data_buf != NULL) {
         printk(GC_PREFIX " Copying all valid data from GC selected blocks into buffers\n");
         for (i = 0; i < num_selected_blocks; i++) {
             for (j = 0; j < config.pages_per_block; j++) {
                 if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
-                     page_index = (selected_block_ids[i] * config.pages_per_block) + j;
-                     read_page(page_index, blk_data_buf + j * config.page_size);
-                     //memcpy(blk_data_buf + j * config.page_size, page_data_buf, config.page_size);
-                     //blk_data_buf_offset += config.page_size;
+                    page_index = (selected_block_ids[i] * config.pages_per_block) + j;
+                    read_page(page_index, blk_data_buf + (j * config.page_size));
+                    //memcpy(blk_data_buf + j * config.page_size, page_data_buf, config.page_size);
+                    //blk_data_buf_offset += config.page_size;
                 }
             }
         }
@@ -824,54 +878,24 @@ int garbage_collect() {
         printk(GC_PREFIX "No free blocks found. 'Garbage Collecting' data from "
                 "block with most invalid pages\n");
         /* Erase the block and write to it */
-        eraseBlock(selected_block_ids[0], 1);
-
-        for (i = 0; i < num_pages_to_write; i++) {
-         	/* compute the flash target address in bytes */
-	        addr = ((uint64_t) page_index + i) * ((uint64_t) config.page_size);
-	        /* call the NAND driver MTD to perform the write operation */
-	        if (config.mtd->
-	            _write(config.mtd, addr, config.page_size, &retlen, blk_data_buf + (i*config.page_size)) != 0)
-		        return -2;
-            //write_page(page_index + i, blk_data_buf + (i*config.page_size));
-        }
-
-        config.blocks[selected_free_blk_id].free_pages = remaining_pages;
-        config.current_block = selected_free_blk_id;
-        config.current_page_offset = num_pages_to_write;
-        config.blocks[selected_free_blk_id].state = BLK_USED;
+        eraseBlock(selected_free_blk_id, 1);
        
+        move_data(selected_free_blk_id, page_index, num_pages_to_write, blk_data_buf);
         return 0;
     }
     
 
     /* We get to here because free block is different from the block(s)
      * we are going to erase*/
-    printk(GC_PREFIX "Writing %d pages in block %d\n", num_pages_to_write,
-            selected_free_blk_id);
-
-    for (i = 0; i < num_pages_to_write; i++) {
-     	/* compute the flash target address in bytes */
-	    addr = ((uint64_t) page_index + i) * ((uint64_t) config.page_size);
-	    /* call the NAND driver MTD to perform the write operation */
-	    if (config.mtd->
-	        _write(config.mtd, addr, config.page_size, &retlen, blk_data_buf + (i*config.page_size)) != 0)
-            return -2;
-        //write_page(page_index + i, blk_data_buf + (i * config.page_size));
-    }
-    
-    config.blocks[selected_free_blk_id].free_pages = remaining_pages;
-    config.current_block = selected_free_blk_id;
-    config.current_page_offset = num_pages_to_write;
-    /* Update free block's state to BLK_USED */
-    config.blocks[selected_free_blk_id].state = BLK_USED;
+    move_data(selected_free_blk_id, page_index, num_pages_to_write, blk_data_buf);
 
     /* Erase the GC selected blocks */
-   for (i = 0; i < num_selected_blocks; i++) {
+    for (i = 0; i < num_selected_blocks; i++) {
         printk(GC_PREFIX "Erasing Garbage Collected block: %d\n", selected_block_ids[i]);
         eraseBlock(selected_block_ids[i], 1);
     }
-
+    
+    vfree(blk_data_buf);
     return 0;
 
 	// wear count : invalid block ratio
@@ -890,6 +914,71 @@ int garbage_collect() {
 		// when to garbage collect
 
 }
+
+/**
+ *
+ */
+int move_data(int block_id, int page_index, int num_pages_to_write, 
+        char * buf) {
+
+    int i;
+    size_t retlen;
+    uint64_t addr;
+    char *key;
+    char *val;
+
+    if (buf == NULL) 
+        return -1;
+
+    key = (char *) vmalloc(config.page_size);
+    val = (char *) vmalloc(config.page_size);
+
+    if (key == NULL) 
+        return -1;
+
+    if (val == NULL) {
+        vfree(key);
+        return -1;
+    }
+
+    printk(GC_PREFIX "Writing %d pages in block %d\n", num_pages_to_write,
+            block_id);
+
+    for (i = 0; i < num_pages_to_write; i++) {
+     	/* compute the flash target address in bytes */
+	    addr = ((uint64_t) page_index + i) * ((uint64_t) config.page_size);
+	    /* call the NAND driver MTD to perform the write operation */
+	    if (config.mtd->
+	        _write(config.mtd, addr, config.page_size, &retlen, 
+                buf + (i * config.page_size)) != 0)
+            return -2;
+
+        config.blocks[block_id].pages_states[(page_index + i) 
+            % config.pages_per_block] = PG_VALID;
+
+        /* update metadata in RAM here */
+        printk(GC_PREFIX "Updating metadata for key-val. Block: %d, Key: %d\n",
+                block_id, page_index + i);
+        
+        read_key_val_from_page(key, val, buf + (i * config.page_size));
+        update_key_val_metadata(key, block_id, page_index + i);
+
+       //write_page(page_index + i, blk_data_buf + (i * config.page_size));
+    }
+
+    config.blocks[block_id].free_pages = config.page_size - num_pages_to_write;
+    config.current_block = block_id;
+    config.current_page_offset = num_pages_to_write;
+    /* Update free block's state to BLK_USED */
+    config.blocks[block_id].state = BLK_USED;
+    
+    vfree(key);
+    vfree(val);
+    return 0;
+}
+
+
+
 
 /**
  * Returns the number of free blocks left in the flash
