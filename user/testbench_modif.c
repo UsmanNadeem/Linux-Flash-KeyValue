@@ -201,37 +201,45 @@ int main(void)
     for (i = 0; i < 9; i++) {
         for (j = 0; j < 65; j++) {
             char key[128], val[128];
-            if (j < 60) {
-                sprintf(key, "key%d", i * 64 + j);
-                sprintf(val, "val%d", i * 64 + j);
-                ret += kvlib_set(key, val);
-            }
-            else {
-                /* last 5 pages will be written by updates, this will 
-                 * create 5 invalid pages in the flash block. */
-                sprintf(key, "key%d", (i * 64 + j) - 10);
-                sprintf(val, "val%d_updated", (i * 64 + j) - 10);
-                ret += kvlib_update(key, val);
+            sprintf(key, "key%d", i * 65 + j);
+            sprintf(val, "val%d", i * 65 + j);
+            errors += test_set(key, val);
+            errors += test_get(key, val);
+            if (j < (2 * i + 1)){
+                errors += test_delete(key);
             }
         }
         /* Delete some pages in this block, later blocks will have more
          * deleted pages and more chances of being selected for GC. */
-        for (j = 0; j < (1 + i * 2); j++) {
-            char key[128];
-            sprintf(key, "key%d", i * 64 + j);           
-            ret += kvlib_del(key);
+    }
+
+    if (errors != 0) {
+        printf(PRINT_PREF "Failed in filling flash during GC test. Errors = %d\n", errors);
+        return -1;
+    }
+    printf(PRINT_PREF "Flash fill operations during GC test successful\n");
+
+    /* Test that all the inserted values are in the Flash */
+    for (i = 0; i < 9; i++) {
+        for (j = 0; j < 65; j++) {
+            char key[128], val[128];
+            if (j >= (2 * i + 1)) {
+                sprintf(key, "key%d", i * 65 + j);
+                sprintf(val, "val%d", i * 65 + j);
+                errors += test_get(key, val);
+            }
         }
     }
 
-	for (i = 0; i < 576; i++) {
-		char key[128], val[128];
-		sprintf(key, "key%d", i);
-		sprintf(val, "val%d", i);
-		ret += kvlib_set(key, val);
-	}
-	printf(PRINT_PREF " returns: %d (should be 0)\n", ret);
+    if (errors != 0) {
+        printf(PRINT_PREF "Failed in validating flash state after GC. Errors = %d\n", errors);
+        return -1;
+    }
+     printf(PRINT_PREF "PASSED: Flash state successfully validated after GC\n");
 
-	/* The flash is full and the system should be read-only, let's try to
+    /* Total 81 keys were deleted above. We should be able to insert 81 K-V pairs */
+
+    /* The flash is full and the system should be read-only, let's try to
 	 * add an additional key/value: */
 	ret = kvlib_set("key634", "val634");
 	printf(PRINT_PREF "Trying to insert another key/val:\n");
