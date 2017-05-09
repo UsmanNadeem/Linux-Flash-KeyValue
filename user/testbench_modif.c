@@ -233,6 +233,7 @@ int main(void)
             if (j >= (2 * i + 1)) {
                 sprintf(key, "key%d", i * 65 + j);
                 sprintf(val, "val%d", i * 65 + j);
+                printf(PRINT_PREF "Trying to get key:  %s\n", key);
                 errors += test_get(key, val);
             }
             else {

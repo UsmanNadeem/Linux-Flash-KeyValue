@@ -686,7 +686,7 @@ void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
     int i;
 	directory_entry *entry = NULL;
  
-    printk("Updating metadata for Key: %s\n", key);
+    //printk("Updating metadata for Key: %s\n", key);
  
     /*Search for key in dictionary entry */
     for (i = 0; i < config.MAX_KEYS; ++i) {
@@ -701,7 +701,7 @@ void update_key_val_metadata(char *key, int new_block, int new_page_offset) {
     }
     
     if (entry) {
-        printk("Updating metadata for Key: %s\n", key);
+        // printk("Updating metadata for Key: %s\n", key);
         /* update metadata here */ 
         entry->block = new_block;
         entry->page_offset = new_page_offset;
@@ -858,7 +858,7 @@ int garbage_collect() {
         for (i = 0; i < num_selected_blocks; i++) {
             for (j = 0; j < config.pages_per_block; j++) {
                 if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
-                    page_index = (selected_block_ids[i] * config.pages_per_block) + buf_offset;
+                    page_index = (selected_block_ids[i] * config.pages_per_block) + j;
                     read_page(page_index, blk_data_buf + (buf_offset * config.page_size));
                     buf_offset++;
                     //memcpy(blk_data_buf + j * config.page_size, page_data_buf, config.page_size);
