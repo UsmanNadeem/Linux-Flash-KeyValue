@@ -43,7 +43,7 @@ void update_flash_randomly(int numIter)
     for (int j = 0; j < numIter; ++j) {
         int i;
 
-        printf("\n\n\n [RANDOM Update] Updating flash randomly:\n\n\n");
+        printf("\n\n\n [RANDOM Update] Iter: %d/%d\n", j, numIter);
 
         for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS * 4 / 5) + 1; i++) {
             int randNum = rand() % (PAGES_PER_BLOCK * NUM_BLOCKS * 4 / 5) + 1;
@@ -61,7 +61,7 @@ void update_flash_randomly(int numIter)
 
 int main(int argc, char *argv[]) {
 
-    int numIter = 25;
+    int numIter = 100;
 
 
     kvlib_format();
