@@ -3,7 +3,7 @@ CFLAGS=-Wall -Werror
 LDFLAGS=
 TARGET=root@192.168.53.89:~
 
-all: kvlib.o testbench testbench_modif test_write_persistence performance
+all: kvlib.o testbench testbench_modif test_write_persistence performance performance2
 
 kvlib.o: kvlib.c
 	$(CC) $(CFLAGS) -c $^ -Wall -o $@ $(LDFLAGS)
@@ -18,6 +18,9 @@ test_write_persistence: test_write_persistence.c kvlib.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 performance: performance.c kvlib.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+performance2: performance2.c kvlib.o
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 install: all

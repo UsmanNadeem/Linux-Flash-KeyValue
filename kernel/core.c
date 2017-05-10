@@ -465,9 +465,6 @@ int set_keyval(const char *key, const char *val)
 	char *buffer;
 	directory_entry* dirToAdd;
 	__u32 _hash = hash(key);
-    
-    if (config.invoke_gc)
-        garbage_collect();
 
     key_len = strlen(key);
 	val_len = strlen(val);
@@ -487,12 +484,19 @@ int set_keyval(const char *key, const char *val)
 				break;
 			} else if (config.dir.list[i].state == KEY_VALID) {
 				//printk(PRINT_PREF "Key \"%s\" already exists Updating it\n", key);
-				delete(&(config.dir.list[i]));
-				dirToAdd = &(config.dir.list[i]);
+
+				
+
+				return update_keyval(key, val);
+				// delete(&(config.dir.list[i]));
+				// dirToAdd = &(config.dir.list[i]);
 				break;
 			}
 		}
 	}
+
+	if (config.invoke_gc)
+        garbage_collect();
 
 	// directory entry not found
 	if (dirToAdd == NULL) {
