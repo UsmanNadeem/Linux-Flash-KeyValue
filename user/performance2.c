@@ -38,7 +38,7 @@ int write_to_flash_25(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Writing to Flash till 25%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Writing to Flash till 25%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -69,7 +69,7 @@ int write_to_flash_50(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Writing to Flash till 50%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Writing to Flash till 50%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -98,7 +98,7 @@ int write_to_flash_75(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Writing to Flash till 75%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Writing to Flash till 75%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -127,7 +127,7 @@ int write_to_flash_100(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Writing to Flash till 100%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Writing to Flash till 100%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -167,7 +167,7 @@ int read_from_flash_sequentially_25(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    // printf("\n\n\n [SEQ Read Performance] Reading from a 25%% flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Read Performance] Reading from a 25%% flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS / 4) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -203,7 +203,7 @@ int read_from_flash_sequentially_50(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    // printf("\n\n\n [SEQ Read Performance] Reading from a 50%% flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Read Performance] Reading from a 50%% flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS / 2) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -239,7 +239,7 @@ int read_from_flash_sequentially_75(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    // printf("\n\n\n [SEQ Read Performance] Reading from a 75%% flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Read Performance] Reading from a 75%% flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS*3 / 4) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -275,7 +275,7 @@ int read_from_flash_sequentially_100(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    // printf("\n\n\n [SEQ Read Performance] Reading from a full flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Read Performance] Reading from a full flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -302,7 +302,7 @@ int update_flash_25(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Updating Flash till 25%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Updating Flash till 25%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -331,7 +331,7 @@ int update_flash_50(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Updating Flash till 50%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Updating Flash till 50%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -360,7 +360,7 @@ int update_flash_75(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Updating Flash till 75%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Updating Flash till 75%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -389,7 +389,7 @@ int update_flash_100(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    // printf("\n\n\n [Write Performance] Updating Flash till 100%% capacity:\n\n\n");
+    printf("\n\n\n [Write Performance] Updating Flash till 100%% capacity:\n\n\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -424,7 +424,7 @@ int delete_flash_25(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    // printf("\n\n\n [SEQ Delete Performance] Deleting from a 25%% full flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 25%% full flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS/4) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -448,7 +448,7 @@ int delete_flash_50(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    // printf("\n\n\n [SEQ Delete Performance] Deleting from a 50%% full flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 50%% full flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS/2) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -472,7 +472,7 @@ int delete_flash_75(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    // printf("\n\n\n [SEQ Delete Performance] Deleting from a 75%% full flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 75%% full flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS*3/4) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -496,7 +496,7 @@ int delete_flash_100(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    // printf("\n\n\n [SEQ Delete Performance] Deleting from a 100%% full flash sequentially:\n\n\n");
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 100%% full flash sequentially:\n\n\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
