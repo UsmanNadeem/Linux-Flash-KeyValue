@@ -465,15 +465,11 @@ int set_keyval(const char *key, const char *val)
 	char *buffer;
 	directory_entry* dirToAdd;
 	__u32 _hash = hash(key);
+    
+    if (config.invoke_gc)
+        garbage_collect();
 
-    if (config.read_only) {
-        if (config.invoke_gc)
-            garbage_collect();
-        else
-            return -3;
-    }
-
-	key_len = strlen(key);
+    key_len = strlen(key);
 	val_len = strlen(val);
 	dirToAdd = NULL;
 
@@ -663,8 +659,10 @@ int delete(directory_entry *entry)
     entry->state = KEY_DELETED;
     config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
     config.blocks[entry->block].invalid_pages++;
-    if (config.read_only)
+    if (config.read_only) {
         config.invoke_gc = 1;
+        config.read_only = 0;
+    }
     return 0;
 }
 
@@ -815,7 +813,8 @@ int select_block_for_gc(int *exclude_blocks, int num_excluded_blocks,
 
 /**
  * Function to perform garbage collection.
- * Victim block selection criteria: block with highest invalid_pages/wipe_count ratio.
+ * Victim block selection criteria: block with highest 
+ * invalid_pages/wipe_count ratio.
  */
 int garbage_collect() {
     int i;
@@ -829,7 +828,9 @@ int garbage_collect() {
 
     /* Select a free block to move the data */
     for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
-        //printk(GC_PREFIX " Free Block Selection: Block: %d - Block-state: %d - Erase_Count: %llu\n", i, config.blocks[i].state, config.blocks[i].wipeCount);
+        //printk(GC_PREFIX " Free Block Selection: Block: %d - Block-state: %d
+        // - Erase_Count: %llu\n", i, config.blocks[i].state,
+        // config.blocks[i].wipeCount);
         if (config.blocks[i].wipeCount <= wipe_count 
                 && config.blocks[i].state == BLK_FREE) {
             selected_free_blk_id = i;
@@ -848,14 +849,18 @@ int garbage_collect() {
         config.blocks[config.metadata_blocks].invalid_pages);
 
     if (selected_free_blk_id == -1) {
-        printk(GC_PREFIX "No free block found. Now trying to find block with most garbage\n");
+        printk(GC_PREFIX "No free block found. Now trying to find block " 
+                "with most garbage\n");
         for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
-            //printk(GC_PREFIX "Block: %d - free_pages: %llu - invalid_pages: %d\n", i, config.blocks[i].free_pages, config.blocks[i].invalid_pages);
+            //printk(GC_PREFIX "Block: %d - free_pages: %llu - invalid_pages: " 
+            //"%d\n", i, config.blocks[i].free_pages, 
+            //config.blocks[i].invalid_pages);
             if (config.pages_per_block - (config.blocks[i].free_pages + 
                      config.blocks[i].invalid_pages) <= blk_valid_pages) {
                 selected_free_blk_id = i;
                 blk_valid_pages = config.pages_per_block - 
-                    (config.blocks[i].free_pages + config.blocks[i].invalid_pages);
+                    (config.blocks[i].free_pages + 
+                     config.blocks[i].invalid_pages);
             }
         }
         if (blk_valid_pages == config.pages_per_block) {
@@ -888,13 +893,16 @@ int garbage_collect() {
     /* Select blocks for garbage collection */
 
     while (true) {
-        selected_block_id = select_block_for_gc(selected_block_ids, num_selected_blocks, remaining_pages);
+        selected_block_id = select_block_for_gc(selected_block_ids, 
+                num_selected_blocks, remaining_pages);
         if (selected_block_id == -1) {
             //num_selected_blocks += 1;
             break;
         }
-        /* keep track of how many pages we can still fill in the selected_free_block */
-        remaining_pages -= config.pages_per_block - (config.blocks[selected_block_id].free_pages + 
+        /* keep track of how many pages we can still fill in the selected
+         * _free_block */
+        remaining_pages -= config.pages_per_block - 
+            (config.blocks[selected_block_id].free_pages + 
                 config.blocks[selected_block_id].invalid_pages);
         
         selected_block_ids[num_selected_blocks++] = selected_block_id;
@@ -902,7 +910,8 @@ int garbage_collect() {
     }
     /* No block was selected for GC. However a free block was found */
     if (num_selected_blocks == 0 && selected_free_blk_id != -1) {
-        printk(GC_PREFIX "No block found for GC (invalid_pages = 0). Free block = %d\n", selected_free_blk_id);
+        printk(GC_PREFIX "No block found for GC (invalid_pages = 0)." 
+                " Free block = %d\n", selected_free_blk_id);
         config.current_block = selected_free_blk_id;
         config.current_page_offset = 0;
         config.blocks[selected_free_blk_id].state = BLK_USED;
@@ -925,15 +934,17 @@ int garbage_collect() {
     /* Copy all valid data from the blocks selected for GC into the buffer*/
     int buf_offset = 0;
     if (blk_data_buf != NULL) {
-        //printk(GC_PREFIX " Copying all valid data from GC selected blocks into buffers\n");
+        //printk(GC_PREFIX " Copying all valid data from GC selected" 
+        //" blocks into buffers\n");
         for (i = 0; i < num_selected_blocks; i++) {
             for (j = 0; j < config.pages_per_block; j++) {
-                if (config.blocks[selected_block_ids[i]].pages_states[j] == PG_VALID) {
-                    page_index = (selected_block_ids[i] * config.pages_per_block) + j;
-                    read_page(page_index, blk_data_buf + (buf_offset * config.page_size));
+                if (config.blocks[selected_block_ids[i]].pages_states[j] ==
+                        PG_VALID) {
+                    page_index = (selected_block_ids[i] * 
+                            config.pages_per_block) + j;
+                    read_page(page_index, blk_data_buf + 
+                            (buf_offset * config.page_size));
                     buf_offset++;
-                    //memcpy(blk_data_buf + j * config.page_size, page_data_buf, config.page_size);
-                    //blk_data_buf_offset += config.page_size;
                 }
             }
         }
@@ -947,48 +958,40 @@ int garbage_collect() {
      * again and adjust the current block and page_offset in config.*/
     if(num_selected_blocks == 1 && selected_block_ids[0] == 
             selected_free_blk_id) {
-        printk(GC_PREFIX "No free blocks found. 'Garbage Collecting' data from "
-                "block with most invalid pages\n");
+        printk(GC_PREFIX "No free blocks found. 'Garbage Collecting' data "
+                " from block with most invalid pages\n");
         /* Erase the block and write to it */
         eraseBlock(selected_free_blk_id, 1);
        
-        move_data(selected_free_blk_id, page_index, num_pages_to_write, blk_data_buf);
+        move_data(selected_free_blk_id, page_index, num_pages_to_write,
+                blk_data_buf);
         return 0;
     }
     
 
     /* We get to here because free block is different from the block(s)
      * we are going to erase*/
-    move_data(selected_free_blk_id, page_index, num_pages_to_write, blk_data_buf);
+    move_data(selected_free_blk_id, page_index, num_pages_to_write,
+            blk_data_buf);
 
     /* Erase the GC selected blocks */
     for (i = 0; i < num_selected_blocks; i++) {
-        printk(GC_PREFIX "Erasing Garbage Collected block: %d\n", selected_block_ids[i]);
+        printk(GC_PREFIX "Erasing Garbage Collected block: %d\n", 
+                selected_block_ids[i]);
         eraseBlock(selected_block_ids[i], 1);
     }
     
     vfree(blk_data_buf);
     return 0;
 
-	// wear count : invalid block ratio
-	// choose the block with the lowest ratio
-	// invalid blocks can be zero so take care of that
-	// move the data around
-	// call the eraseblock function on that block 
-
-
-
-// todo:
-	// 		remove readonly flag after cleaning a block 
-		// remove readonly flag after deleting a value
-// 
-		// when to write metadata
-		// when to garbage collect
-
 }
 
 /**
- *
+ * Writes pages to the provided block_id from the buffer buf
+ * @param block_id: ID of the block where write is to be done
+ * @param page_index: starting page index for writes
+ * @param num_pages_to_write: Number of pages to write
+ * @param bug: Buffer containing data that has to be written
  */
 int move_data(int block_id, int page_index, int num_pages_to_write, 
         char * buf) {
@@ -1047,11 +1050,8 @@ int move_data(int block_id, int page_index, int num_pages_to_write,
     config.current_page_offset = num_pages_to_write;
     /* Update free block's state to BLK_USED */
     config.blocks[block_id].state = BLK_USED;
-    if (config.read_only) {
-        config.read_only = 0;
-        if (config.invoke_gc) {
-            config.invoke_gc = 0;
-        }
+    if (config.invoke_gc) {
+        config.invoke_gc = 0;
     } 
 
     //printk(PRINT_PREF "MOVE_DATA: config.current_block: %d, config.current_block_offset: %d\n", config.current_block, config.current_page_offset);

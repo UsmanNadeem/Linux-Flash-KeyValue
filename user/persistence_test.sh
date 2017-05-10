@@ -1,16 +1,32 @@
 #!/bin/bash
-echo -e "Inserting the module"
+
+PREF="[ TEST_SCRIPT ]: "
+
+echo -e "$PREF Launching Tests for Flash:"
+
+echo -e "$PREF Inserting the module"
 ./insert_mod.sh
 
-echo -e "Writing to flash"
-./test_write_persistence 0
+echo -e "$PREF Launching Testbench"
+./testbench_modif
 
-echo -e "Removing the module"
+echo -e "$PREF Removing the module"
 rmmod prototype.ko
 
-echo -e "Re-inserting the moduel"
+echo -e "$PREF Executing persistence tests"
+
+echo -e "$PREF Inserting the module"
 ./insert_mod.sh
 
-echo -e "Reading from flash"
+echo -e "$PREF Writing to flash"
+./test_write_persistence 0
+
+echo -e "$PREF Removing the module"
+rmmod prototype.ko
+
+echo -e "$PREF Re-inserting the moduel"
+./insert_mod.sh
+
+echo -e "$PREF Reading from flash"
 ./test_write_persistence 1
 
