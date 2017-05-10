@@ -24,6 +24,14 @@ uint64_t timeU25;
 uint64_t timeU50;
 uint64_t timeU75;
 uint64_t timeU100;
+uint64_t timeRead25;
+uint64_t timeRead50;
+uint64_t timeRead75;
+uint64_t timeRead100;
+uint64_t del25;
+uint64_t del50;
+uint64_t del75;
+uint64_t del100;
 
 int write_to_flash_25(void) {
     int ret, i;
@@ -53,6 +61,8 @@ int write_to_flash_25(void) {
 
     return ret;
 }
+
+
 
 int write_to_flash_50(void) {
 	int ret, i;
@@ -126,7 +136,7 @@ int write_to_flash_100(void) {
 
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
 
-        printf("Writing %d / %d\n", i, (PAGES_PER_BLOCK * NUM_BLOCKS));
+        // printf("Writing %d / %d\n", i, (PAGES_PER_BLOCK * NUM_BLOCKS));
         char key[128], val[128];
         sprintf(key, "key%d", i);
         sprintf(val, "val%d", i);
@@ -144,7 +154,149 @@ int write_to_flash_100(void) {
 }
 
 
+int read_from_flash_sequentially_25(void)
+{
+    int i, ret = 0;
+    char buffer[128];
+    buffer[0] = '\0';
+    struct timeval tv;
 
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    /* "get" operation test */
+    printf("\n\n\n [SEQ Read Performance] Reading from a 25%% flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS / 4) + 1 ; ++i) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        kvlib_get(key, buffer);
+        //printf(PRINT_PREF " Read the Key: %s, val: %s\n", key, buffer);
+        if (strcmp(val, buffer)) {
+            ret++;
+            //printf(PRINT_PREF "Failed GET: \n%s:%s\ngot \"%s\"\n", key, val, buffer);
+        }
+    }
+    if (ret != 0)
+        printf("\n\n\n********************* [SEQ Read Performance] FAILED: Get\n\n\n");
+
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    timeRead25 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
+
+int read_from_flash_sequentially_50(void)
+{
+    int i, ret = 0;
+    char buffer[128];
+    buffer[0] = '\0';
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    /* "get" operation test */
+    printf("\n\n\n [SEQ Read Performance] Reading from a 50%% flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS / 2) + 1 ; ++i) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        kvlib_get(key, buffer);
+        //printf(PRINT_PREF " Read the Key: %s, val: %s\n", key, buffer);
+        if (strcmp(val, buffer)) {
+            ret++;
+            //printf(PRINT_PREF "Failed GET: \n%s:%s\ngot \"%s\"\n", key, val, buffer);
+        }
+    }
+    if (ret != 0)
+        printf("\n\n\n********************* [SEQ Read Performance] FAILED: Get\n\n\n");
+
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    timeRead50 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
+
+int read_from_flash_sequentially_75(void)
+{
+    int i, ret = 0;
+    char buffer[128];
+    buffer[0] = '\0';
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    /* "get" operation test */
+    printf("\n\n\n [SEQ Read Performance] Reading from a 75%% flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS*3 / 4) + 1 ; ++i) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        kvlib_get(key, buffer);
+        //printf(PRINT_PREF " Read the Key: %s, val: %s\n", key, buffer);
+        if (strcmp(val, buffer)) {
+            ret++;
+            //printf(PRINT_PREF "Failed GET: \n%s:%s\ngot \"%s\"\n", key, val, buffer);
+        }
+    }
+    if (ret != 0)
+        printf("\n\n\n********************* [SEQ Read Performance] FAILED: Get\n\n\n");
+
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    timeRead75 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
+
+int read_from_flash_sequentially_100(void)
+{
+    int i, ret = 0;
+    char buffer[128];
+    buffer[0] = '\0';
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    /* "get" operation test */
+    printf("\n\n\n [SEQ Read Performance] Reading from a full flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
+        char key[128], val[128];
+        sprintf(key, "key%d", i);
+        sprintf(val, "val%d", i);
+        kvlib_get(key, buffer);
+        //printf(PRINT_PREF " Read the Key: %s, val: %s\n", key, buffer);
+        if (strcmp(val, buffer)) {
+            ret++;
+            //printf(PRINT_PREF "Failed GET: \n%s:%s\ngot \"%s\"\n", key, val, buffer);
+        }
+    }
+    if (ret != 0)
+        printf("\n\n\n********************* [SEQ Read Performance] FAILED: Get\n\n\n");
+
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    timeRead100 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
 int update_flash_25(void) {
     int ret, i;
     struct timeval tv;
@@ -262,6 +414,101 @@ int update_flash_100(void) {
     return ret;
 }
 
+int delete_flash_25(void)
+{
+    int i, ret = 0;
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 25%% full flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS/4) + 1 ; ++i) {
+        char key[128];
+        sprintf(key, "key%d", i);
+        kvlib_del(key);
+    }
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    del25 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
+
+int delete_flash_50(void)
+{
+    int i, ret = 0;
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 50%% full flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS/2) + 1 ; ++i) {
+        char key[128];
+        sprintf(key, "key%d", i);
+        kvlib_del(key);
+    }
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    del50 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
+
+int delete_flash_75(void)
+{
+    int i, ret = 0;
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 75%% full flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS*3/4) + 1 ; ++i) {
+        char key[128];
+        sprintf(key, "key%d", i);
+        kvlib_del(key);
+    }
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    del75 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
+
+int delete_flash_100(void)
+{
+    int i, ret = 0;
+    struct timeval tv;
+
+
+    gettimeofday(&tv,NULL);
+    uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t time_in_micros_new = 0;
+
+    printf("\n\n\n [SEQ Delete Performance] Deleting from a 100%% full flash sequentially:\n\n\n");
+    for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
+        char key[128];
+        sprintf(key, "key%d", i);
+        kvlib_del(key);
+    }
+
+    gettimeofday(&tv,NULL);
+    time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
+    del100 = time_in_micros_new - time_in_micros_old;
+
+    return ret;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -269,37 +516,63 @@ int main(int argc, char *argv[]) {
     sleep(4);
     write_to_flash_25();
     sleep(4);
+    read_from_flash_sequentially_25();
     update_flash_25();
+    sleep(4);
+    delete_flash_25();
 
     kvlib_format();
     sleep(4);
     write_to_flash_50();
+    read_from_flash_sequentially_50();
     sleep(4);
     update_flash_50();
+    sleep(4);
+    delete_flash_50();
 
     kvlib_format();
     sleep(4);
     write_to_flash_75();
+    read_from_flash_sequentially_75();
     sleep(4);
     update_flash_75();
+    sleep(4);
+    delete_flash_75();
 
     kvlib_format();
     sleep(4);
     write_to_flash_100();
+    read_from_flash_sequentially_100();
     sleep(4);
     update_flash_100();
+    sleep(4);
+    delete_flash_100();
 
 
     
-    printf ("[Write Performance] Time taken to write 25%% of the disk = %luus\n", timeW25);
-    printf ("[Write Performance] Time taken to update 25%% of the disk = %luus\n", timeU25);
-    printf ("[Write Performance] Time taken to write 50%% of the disk = %luus\n", timeW50);
-    printf ("[Write Performance] Time taken to update 50%% of the disk = %luus\n", timeU50);
-    printf ("[Write Performance] Time taken to write 75%% of the disk = %luus\n", timeW75);
-    printf ("[Write Performance] Time taken to update 75%% of the disk = %luus\n", timeU75);
-    printf ("[Write Performance] Time taken to write 100%% of the disk = %luus\n", timeW100);
-    printf ("[Write Performance] Time taken to update 100%% of the disk = %luus\n", timeU100);
+    printf ("[Performance] Time taken to write\t25%% of the disk = %luus\n", timeW25);
+    printf ("[Performance] Time taken to update\t25%% of the disk = %luus\n", timeU25);
+    printf ("[Performance] Time taken to read\t25%% of the disk = %luus\n", timeRead25);
+    printf ("[Performance] Time taken to delete\t25%% of the disk = %luus\n", del25);
+printf("\n");
 
+    printf ("[Performance] Time taken to write\t50%% of the disk = %luus\n", timeW50);
+    printf ("[Performance] Time taken to update\t50%% of the disk = %luus\n", timeU50);
+    printf ("[Performance] Time taken to read\t50%% of the disk = %luus\n", timeRead50);
+    printf ("[Performance] Time taken to delete\t50%% of the disk = %luus\n", del50);
+printf("\n");
+
+    printf ("[Performance] Time taken to write\t75%% of the disk = %luus\n", timeW75);
+    printf ("[Performance] Time taken to update\t75%% of the disk = %luus\n", timeU75);
+    printf ("[Performance] Time taken to read\t75%% of the disk = %luus\n", timeRead75);
+    printf ("[Performance] Time taken to delete\t75%% of the disk = %luus\n", del75);
+printf("\n");
+
+    printf ("[Performance] Time taken to write\t100%% of the disk = %luus\n", timeW100);
+    printf ("[Performance] Time taken to update\t100%% of the disk = %luus\n", timeU100);
+    printf ("[Performance] Time taken to read\t100%% of the disk = %luus\n", timeRead100);
+    printf ("[Performance] Time taken to delete\t100%% of the disk = %luus\n", del100);
+printf("\n");
 
 
 
