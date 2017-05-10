@@ -38,7 +38,7 @@ int write_to_flash_25(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Writing to Flash till 25%% capacity:\n\n\n");
+    printf("[Write Performance] Writing to Flash till 25%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -69,7 +69,7 @@ int write_to_flash_50(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Writing to Flash till 50%% capacity:\n\n\n");
+    printf("[Write Performance] Writing to Flash till 50%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -98,7 +98,7 @@ int write_to_flash_75(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Writing to Flash till 75%% capacity:\n\n\n");
+    printf("[Write Performance] Writing to Flash till 75%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -127,7 +127,7 @@ int write_to_flash_100(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Writing to Flash till 100%% capacity:\n\n\n");
+    printf("[Write Performance] Writing to Flash till 100%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -167,7 +167,7 @@ int read_from_flash_sequentially_25(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    printf("\n\n\n [SEQ Read Performance] Reading from a 25%% flash sequentially:\n\n\n");
+    printf("[SEQ Read Performance] Reading from a 25%% flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS / 4) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -203,7 +203,7 @@ int read_from_flash_sequentially_50(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    printf("\n\n\n [SEQ Read Performance] Reading from a 50%% flash sequentially:\n\n\n");
+    printf("[SEQ Read Performance] Reading from a 50%% flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS / 2) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -239,7 +239,7 @@ int read_from_flash_sequentially_75(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    printf("\n\n\n [SEQ Read Performance] Reading from a 75%% flash sequentially:\n\n\n");
+    printf("[SEQ Read Performance] Reading from a 75%% flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS*3 / 4) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -275,7 +275,7 @@ int read_from_flash_sequentially_100(void)
     uint64_t time_in_micros_new = 0;
 
     /* "get" operation test */
-    printf("\n\n\n [SEQ Read Performance] Reading from a full flash sequentially:\n\n\n");
+    printf("[SEQ Read Performance] Reading from a full flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
         char key[128], val[128];
         sprintf(key, "key%d", i);
@@ -302,7 +302,7 @@ int update_flash_25(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Updating Flash till 25%% capacity:\n\n\n");
+    printf("[Write Performance] Updating Flash till 25%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -331,7 +331,7 @@ int update_flash_50(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Updating Flash till 50%% capacity:\n\n\n");
+    printf("[Write Performance] Updating Flash till 50%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -360,7 +360,7 @@ int update_flash_75(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Updating Flash till 75%% capacity:\n\n\n");
+    printf("[Write Performance] Updating Flash till 75%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -389,7 +389,7 @@ int update_flash_100(void) {
     struct timeval tv;
 
     /* Write to the flash */
-    printf("\n\n\n [Write Performance] Updating Flash till 100%% capacity:\n\n\n");
+    printf("[Write Performance] Updating Flash till 100%% capacity:\n");
     ret = 0;
 
     gettimeofday(&tv,NULL);
@@ -404,7 +404,7 @@ int update_flash_100(void) {
         ret += kvlib_set(key, val);
     }
 
-    if (ret != 0)   printf("\n\n\n********************* [Write Performance] FAILED updates\n\n\n");
+    if (ret != 0)   printf("\n\n\n********************* [Write Performance] FAILED updates\n");
 
 
     gettimeofday(&tv,NULL);
@@ -424,7 +424,7 @@ int delete_flash_25(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    printf("\n\n\n [SEQ Delete Performance] Deleting from a 25%% full flash sequentially:\n\n\n");
+    printf("[SEQ Delete Performance] Deleting from a 25%% full flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS/4) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -448,7 +448,7 @@ int delete_flash_50(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    printf("\n\n\n [SEQ Delete Performance] Deleting from a 50%% full flash sequentially:\n\n\n");
+    printf("[SEQ Delete Performance] Deleting from a 50%% full flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS/2) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -472,7 +472,7 @@ int delete_flash_75(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    printf("\n\n\n [SEQ Delete Performance] Deleting from a 75%% full flash sequentially:\n\n\n");
+    printf("[SEQ Delete Performance] Deleting from a 75%% full flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS*3/4) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -496,7 +496,7 @@ int delete_flash_100(void)
     uint64_t time_in_micros_old = 1000000 * tv.tv_sec + tv.tv_usec;
     uint64_t time_in_micros_new = 0;
 
-    printf("\n\n\n [SEQ Delete Performance] Deleting from a 100%% full flash sequentially:\n\n\n");
+    printf("[SEQ Delete Performance] Deleting from a 100%% full flash sequentially:\n");
     for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS) + 1 ; ++i) {
         char key[128];
         sprintf(key, "key%d", i);
@@ -512,69 +512,72 @@ int delete_flash_100(void)
 
 int main(int argc, char *argv[]) {
 
-for (int i = 0; i < 6; ++i)
+    int numIter = 11;
+for (int i = 0; i < numIter; ++i)
 {
+    printf("\nIter: %d/%d\n", i+1, numIter);
+
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_25();
-    sleep(4);
+    sleep(2);
     read_from_flash_sequentially_25();
     update_flash_25();
-    sleep(4);
+    sleep(2);
     delete_flash_25();
 
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_50();
     read_from_flash_sequentially_50();
-    sleep(4);
+    sleep(2);
     update_flash_50();
-    sleep(4);
+    sleep(2);
     delete_flash_50();
 
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_75();
     read_from_flash_sequentially_75();
-    sleep(4);
+    sleep(2);
     update_flash_75();
-    sleep(4);
+    sleep(2);
     delete_flash_75();
 
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_100();
     read_from_flash_sequentially_100();
-    sleep(4);
+    sleep(2);
     update_flash_100();
-    sleep(4);
+    sleep(2);
     delete_flash_100();
 }
 
 
     
-    printf ("[Performance] Time taken to write\t25%% of the disk = %luus\n", timeW25/6);
-    printf ("[Performance] Time taken to update\t25%% of the disk = %luus\n", timeU25/6);
-    printf ("[Performance] Time taken to read\t25%% of the disk = %luus\n", timeRead25/6);
-    printf ("[Performance] Time taken to delete\t25%% of the disk = %luus\n", del25/6);
+    printf ("[Performance] Time taken to write\t25%% of the disk = %luus\n", timeW25/numIter);
+    printf ("[Performance] Time taken to update\t25%% of the disk = %luus\n", timeU25/numIter);
+    printf ("[Performance] Time taken to read\t25%% of the disk = %luus\n", timeRead25/numIter);
+    printf ("[Performance] Time taken to delete\t25%% of the disk = %luus\n", del25/numIter);
 printf("\n");
 
-    printf ("[Performance] Time taken to write\t50%% of the disk = %luus\n", timeW50/6);
-    printf ("[Performance] Time taken to update\t50%% of the disk = %luus\n", timeU50/6);
-    printf ("[Performance] Time taken to read\t50%% of the disk = %luus\n", timeRead50/6);
-    printf ("[Performance] Time taken to delete\t50%% of the disk = %luus\n", del50/6);
+    printf ("[Performance] Time taken to write\t50%% of the disk = %luus\n", timeW50/numIter);
+    printf ("[Performance] Time taken to update\t50%% of the disk = %luus\n", timeU50/numIter);
+    printf ("[Performance] Time taken to read\t50%% of the disk = %luus\n", timeRead50/numIter);
+    printf ("[Performance] Time taken to delete\t50%% of the disk = %luus\n", del50/numIter);
 printf("\n");
 
-    printf ("[Performance] Time taken to write\t75%% of the disk = %luus\n", timeW75/6);
-    printf ("[Performance] Time taken to update\t75%% of the disk = %luus\n", timeU75/6);
-    printf ("[Performance] Time taken to read\t75%% of the disk = %luus\n", timeRead75/6);
-    printf ("[Performance] Time taken to delete\t75%% of the disk = %luus\n", del75/6);
+    printf ("[Performance] Time taken to write\t75%% of the disk = %luus\n", timeW75/numIter);
+    printf ("[Performance] Time taken to update\t75%% of the disk = %luus\n", timeU75/numIter);
+    printf ("[Performance] Time taken to read\t75%% of the disk = %luus\n", timeRead75/numIter);
+    printf ("[Performance] Time taken to delete\t75%% of the disk = %luus\n", del75/numIter);
 printf("\n");
 
-    printf ("[Performance] Time taken to write\t100%% of the disk = %luus\n", timeW100/6);
-    printf ("[Performance] Time taken to update\t100%% of the disk = %luus\n", timeU100/6);
-    printf ("[Performance] Time taken to read\t100%% of the disk = %luus\n", timeRead100/6);
-    printf ("[Performance] Time taken to delete\t100%% of the disk = %luus\n", del100/6);
+    printf ("[Performance] Time taken to write\t100%% of the disk = %luus\n", timeW100/numIter);
+    printf ("[Performance] Time taken to update\t100%% of the disk = %luus\n", timeU100/numIter);
+    printf ("[Performance] Time taken to read\t100%% of the disk = %luus\n", timeRead100/numIter);
+    printf ("[Performance] Time taken to delete\t100%% of the disk = %luus\n", del100/numIter);
 printf("\n");
 
 
