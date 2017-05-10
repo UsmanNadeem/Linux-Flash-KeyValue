@@ -14,7 +14,7 @@
 #define KRED  "\x1B[31m"
 
 int test_set(const char *key, const char *val, int expected_return);
-int test_get(const char *key, const char *val);
+int test_get(const char *key, const char *val, int expected_return);
 int test_delete(const char *key);
 int test_format();
 int test_update(const char *key, const char *val);
@@ -32,13 +32,15 @@ int test_set(const char *key, const char *val, int expected_return) {
     return 0;
 }
 
-int test_get(const char *key, const char *expected_val) {
+int test_get(const char *key, const char *expected_val, int expected_return) {
     char buffer[128];
     int ret = 0;
     
     ret = kvlib_get(key, buffer);
-    if (ret != 0) {
-        printf(PRINT_PREF "Get (kvlib_get) failed for key: %s, expected value: %s, Received value: %s. Error code: %d\n", key, expected_val, buffer, ret);
+    if (ret != expected_return) {
+        printf(PRINT_PREF "Get (kvlib_get) failed for key: %s, expected value: " 
+                "%s, Received value: %s. Expected return value: %d Error code: " 
+                "%d\n", key, expected_val, buffer, expected_return, ret);
         return -1;
     }
     return 0;
@@ -124,7 +126,7 @@ int main(void)
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
-		errors += test_get(key, val);
+		errors += test_get(key, val, 0);
 	}
     
     if (errors != 0){
@@ -153,6 +155,26 @@ int main(void)
     printf(PRINT_PREF KGRN "PASSED: " KNRM "Update operation (Update Keys 1->576)\n");
 
 
+    /*************** Test for updated values in the flash ***************/
+
+    printf("\n\n\n" PRINT_PREF "Testing Get operation: Reading keys 1 to 576\n");
+    
+	for (i = 1; i < 576; i++) {
+		char key[128], val[128];
+		sprintf(key, "key%d", i);
+		sprintf(val, "val%d_updated", i);
+		errors += test_get(key, val, 0);
+	}
+    
+    if (errors != 0){
+        printf(PRINT_PREF "FAILED while reading updated values. Errors = %d\n", errors);
+        return -1;
+    }
+
+	printf(PRINT_PREF KGRN "PASSED " KNRM "Validated that key-value pairs were" 
+            " updated (Get Keys 1->576)\n");
+
+
     /************************ Delete test *******************************/
 	printf("\n\n\n" PRINT_PREF "*********Testing del:\n");
     printf(PRINT_PREF "Deleting Keys 1->576\n");
@@ -167,6 +189,26 @@ int main(void)
         return -1;
     }
     printf(PRINT_PREF KGRN "PASSED: " KNRM "Delete operation (Delete Keys 1->576)\n");
+
+    /************************ Get deleted keys test *******************************/
+
+    printf("\n\n\n" PRINT_PREF "Testing Get for deleted keys operation: "
+            " Reading keys 1 to 576. Should not be able to get keys\n");
+    
+	for (i = 1; i < 576; i++) {
+		char key[128], val[128];
+		sprintf(key, "key%d", i);
+		sprintf(val, "val%d", i);
+		errors += test_get(key, val, -3);
+	}
+    
+    if (errors != 0){
+        printf(PRINT_PREF "FAILED: Deleted keys seem to exist. Errors = %d\n", errors);
+        return -1;
+    }
+
+	printf(PRINT_PREF KGRN "PASSED " KNRM "Deleted keys do not exist (Get Keys 1->576)\n");
+
 
     /************************ Non-existing key test *******************************/
 
@@ -231,7 +273,7 @@ int main(void)
                 sprintf(key, "key%d", i * 65 + j);
                 sprintf(val, "val%d", i * 65 + j);
                 //printf(PRINT_PREF "Trying to get key:  %s\n", key);
-                errors += test_get(key, val);
+                errors += test_get(key, val, 0);
             }
             else {
                 //sprintf(key, "key%d", i * 65 + j);
