@@ -16,11 +16,11 @@
 #define NUM_BLOCKS 9
 #define PAGES_PER_BLOCK 64
 
-uint64_t timeW25;
-uint64_t timeW50;
-uint64_t timeW100;
-uint64_t timeRSeq;
-uint64_t timeRRand;
+uint64_t timeW25 = 0;
+uint64_t timeW50 = 0;
+uint64_t timeW100 = 0;
+uint64_t timeRSeq = 0;
+uint64_t timeRRand = 0;
 
 int write_to_flash_25(void) {
     int ret, i;
@@ -46,7 +46,7 @@ int write_to_flash_25(void) {
 
     gettimeofday(&tv,NULL);
     time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
-    timeW25 = time_in_micros_new - time_in_micros_old;
+    timeW25 += time_in_micros_new - time_in_micros_old;
 
     return ret;
 }
@@ -75,7 +75,7 @@ int write_to_flash_50(void) {
 
     gettimeofday(&tv,NULL);
     time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
-    timeW50 = time_in_micros_new - time_in_micros_old;
+    timeW50 += time_in_micros_new - time_in_micros_old;
 
     return ret;
 }
@@ -104,7 +104,7 @@ int write_to_flash_100(void) {
 
     gettimeofday(&tv,NULL);
     time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
-    timeW100 = time_in_micros_new - time_in_micros_old;
+    timeW100 += time_in_micros_new - time_in_micros_old;
 
     return ret;
 }
@@ -140,7 +140,7 @@ int read_from_flash_sequentially(void)
 
     gettimeofday(&tv,NULL);
     time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
-    timeRSeq = time_in_micros_new - time_in_micros_old;
+    timeRSeq += time_in_micros_new - time_in_micros_old;
 
 
 	return ret;
@@ -203,7 +203,7 @@ int read_from_flash_randomly(void)
 
     gettimeofday(&tv,NULL);
     time_in_micros_new = 1000000 * tv.tv_sec + tv.tv_usec;
-    timeRRand = time_in_micros_new - time_in_micros_old;
+    timeRRand += time_in_micros_new - time_in_micros_old;
 
     free (array);
 
@@ -213,6 +213,8 @@ int read_from_flash_randomly(void)
 
 int main(int argc, char *argv[]) {
 
+for (int i = 0; i < 6; ++i)
+{
     kvlib_format();
 
     sleep(4);
@@ -233,12 +235,13 @@ int main(int argc, char *argv[]) {
 
     sleep(4);
     read_from_flash_randomly();
+}
     
-    printf ("[Write Performance] Time taken to write 25%% of the disk = %luus\n", timeW25);
-    printf ("[Write Performance] Time taken to write 50%% of the disk = %luus\n", timeW50);
-    printf ("[Write Performance] Time taken to write 100%% of the disk = %luus\n", timeW100);
-    printf ("[SEQ Read Performance] Time taken to read sequentially = %luus\n", timeRSeq);
-    printf ("[RANDOM Read Performance] Time taken to read randomly = %luus\n", timeRRand);
+    printf ("[Write Performance] Time taken to write 25%% of the disk = %luus\n", timeW25/6);
+    printf ("[Write Performance] Time taken to write 50%% of the disk = %luus\n", timeW50/6);
+    printf ("[Write Performance] Time taken to write 100%% of the disk = %luus\n", timeW100/6);
+    printf ("[SEQ Read Performance] Time taken to read sequentially = %luus\n", timeRSeq/6);
+    printf ("[RANDOM Read Performance] Time taken to read randomly = %luus\n", timeRRand/6);
 
 
     return 0;
