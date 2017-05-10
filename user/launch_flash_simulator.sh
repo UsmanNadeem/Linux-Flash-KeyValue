@@ -27,4 +27,4 @@ set -euo pipefail
 # and there is a unique object mtd_info in the kernel related to this 
 # partition)
 
-sudo modprobe nandsim first_id_byte=0x20 second_id_byte=0xaa third_id_byte=0x00 fourth_id_byte=0x15 parts=10,800
+sudo modprobe nandsim first_id_byte=0x20 second_id_byte=0xaa third_id_byte=0x00 fourth_id_byte=0x15 parts=10,800 access_delay=25 programm_delay=200 erase_delay=1
