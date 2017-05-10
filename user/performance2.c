@@ -515,7 +515,7 @@ int main(int argc, char *argv[]) {
     int numIter = 11;
 for (int i = 0; i < numIter; ++i)
 {
-    printf("Iter: %d/%d\n", i+1, numIter);
+    printf("\nIter: %d/%d\n", i+1, numIter);
 
     kvlib_format();
     sleep(2);
