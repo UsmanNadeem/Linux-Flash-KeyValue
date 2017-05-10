@@ -853,8 +853,8 @@ int garbage_collect() {
         config.blocks[config.metadata_blocks].invalid_pages);
 
     if (selected_free_blk_id == -1) {
-        printk(GC_PREFIX "No free block found. Now trying to find block " 
-                "with most garbage\n");
+        // printk(GC_PREFIX "No free block found. Now trying to find block " 
+                // "with most garbage\n");
         for (i = config.metadata_blocks; i < config.nb_blocks; ++i) {
             //printk(GC_PREFIX "Block: %d - free_pages: %llu - invalid_pages: " 
             //"%d\n", i, config.blocks[i].free_pages, 
@@ -870,9 +870,9 @@ int garbage_collect() {
         if (blk_valid_pages == config.pages_per_block) {
             /* the block with minimum number of valid pages is also full.
              * Set read-only state. */ 
-            printk(GC_PREFIX "Flash is full. GC cannot find any free space."
-                    " Setting to Read-only mode. Some data has to be deleted"
-                    " before any further writes/updates.\n"); 
+            // printk(GC_PREFIX "Flash is full. GC cannot find any free space."
+                    // " Setting to Read-only mode. Some data has to be deleted"
+                    // " before any further writes/updates.\n"); 
             config.current_block = -1;
             config.current_page_offset = -1;
             config.read_only = 1;
@@ -914,8 +914,8 @@ int garbage_collect() {
     }
     /* No block was selected for GC. However a free block was found */
     if (num_selected_blocks == 0 && selected_free_blk_id != -1) {
-        printk(GC_PREFIX "No block found for GC (invalid_pages = 0)." 
-                " Free block = %d\n", selected_free_blk_id);
+        // printk(GC_PREFIX "No block found for GC (invalid_pages = 0)." 
+                // " Free block = %d\n", selected_free_blk_id);
         config.current_block = selected_free_blk_id;
         config.current_page_offset = 0;
         config.blocks[selected_free_blk_id].state = BLK_USED;
@@ -927,9 +927,9 @@ int garbage_collect() {
     /* At this point, num_selected_blocks have been selected for GC and 
      * their IDs are present in selected_block_ids array */
     
-    printk(GC_PREFIX "Selected Free block: %d\n", selected_free_blk_id);
-    for (i = 0; i < num_selected_blocks; i++) 
-        printk(GC_PREFIX "Selected Block for GC: %d\n", selected_block_ids[i]);
+    // printk(GC_PREFIX "Selected Free block: %d\n", selected_free_blk_id);
+    // for (i = 0; i < num_selected_blocks; i++) 
+        // printk(GC_PREFIX "Selected Block for GC: %d\n", selected_block_ids[i]);
 
     
     blk_data_buf = (char *) vmalloc(config.pages_per_block * config.page_size);
@@ -962,8 +962,8 @@ int garbage_collect() {
      * again and adjust the current block and page_offset in config.*/
     if(num_selected_blocks == 1 && selected_block_ids[0] == 
             selected_free_blk_id) {
-        printk(GC_PREFIX "No free blocks found. 'Garbage Collecting' data "
-                " from block with most invalid pages\n");
+        // printk(GC_PREFIX "No free blocks found. 'Garbage Collecting' data "
+        //         " from block with most invalid pages\n");
         /* Erase the block and write to it */
         eraseBlock(selected_free_blk_id, 1);
        
@@ -980,8 +980,8 @@ int garbage_collect() {
 
     /* Erase the GC selected blocks */
     for (i = 0; i < num_selected_blocks; i++) {
-        printk(GC_PREFIX "Erasing Garbage Collected block: %d\n", 
-                selected_block_ids[i]);
+        // printk(GC_PREFIX "Erasing Garbage Collected block: %d\n", 
+        //         selected_block_ids[i]);
         eraseBlock(selected_block_ids[i], 1);
     }
     
