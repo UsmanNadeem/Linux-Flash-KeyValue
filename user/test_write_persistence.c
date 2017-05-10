@@ -9,14 +9,17 @@
 #include "kvlib.h"
 
 #define PRINT_PREF " [PERSISTENCE_TEST] "
+#define NUM_BLOCKS 9
+#define PAGES_PER_BLOCK 64
+#define TOTAL_PAGES 576
 
 int write_to_flash(void) {
 	int ret, i;
 
 	/* Write to the flash */
-	printf(PRINT_PREF " Writing to Flash (Keys 1->300):\n");
+	printf(PRINT_PREF " Writing to Flash (Keys 1->576):\n");
 	ret = 0;
-	for (i = 1; i < 300; i++) {
+	for (i = 1; i < NUM_BLOCKS * PAGES_PER_BLOCK; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
@@ -35,9 +38,9 @@ int read_from_flash(void)
 	buffer[0] = '\0';
 
     /* "get" operation test */
-	printf(PRINT_PREF " Reading keys 1 to 300 from Flash\n");
+	printf(PRINT_PREF " Reading keys 1 to 576 from Flash\n");
 
-	for (i = 1; i < 300; i++) {
+	for (i = 1; i < NUM_BLOCKS * PAGES_PER_BLOCK; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);

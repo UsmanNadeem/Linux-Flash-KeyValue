@@ -1124,7 +1124,7 @@ int get_next_free_block()
 	int i;
 	uint64_t min_wipeCount;
 	uint64_t blockToChoose;
-	printk(PRINT_PREF "In get_next_free_block \n");
+	//printk(PRINT_PREF "In get_next_free_block \n");
 
 
 	// todo check if < 20 percent blocks are free then call garbage collect

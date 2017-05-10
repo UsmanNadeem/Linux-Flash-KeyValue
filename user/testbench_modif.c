@@ -97,21 +97,13 @@ int main(void)
 	 * well-known state */
     errors += test_format();
 
-    /* "set" operation test */
-	printf("\n\n\n" PRINT_PREF "*********Testing set:\n");
-
-    errors += test_set("key1", "val1", 0);
-	printf(PRINT_PREF "Insert 1 (key1, val1):\n");
-	
-	errors += test_set("key2", "val2", 0);
-	printf(PRINT_PREF "Insert 2 (key2, val2):\n");
-
+    /************************ Get operation test ****************************/
 
     /* Now let's fill an entire block lplus an additional page (we assume 
 	 * there are 64 pages per block) */
-	printf(PRINT_PREF " Testing Set operation. (Insert Keys 3->65):\n");
+	printf(PRINT_PREF " Testing Set operation. (Insert Keys 1->576):\n");
     ret = 0;
-	for (i = 3; i < 65; i++) {
+	for (i = 1; i < 576; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
@@ -121,14 +113,14 @@ int main(void)
         printf(PRINT_PREF " Errors during insertion. errors = %d", errors);
         return -1;
     }
-    printf(PRINT_PREF KGRN "PASSED: " KNRM "Set operation test (Insert Keys 3>65)\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Set operation test (Insert Keys 1->576)\n");
 
 
     /************************ Get operation test ****************************/
 	
-    printf("\n\n\n" PRINT_PREF "Testing Get operation: Reading keys 1 to 65\n");
+    printf("\n\n\n" PRINT_PREF "Testing Get operation: Reading keys 1 to 576\n");
     
-	for (i = 1; i < 65; i++) {
+	for (i = 1; i < 576; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d", i);
@@ -140,14 +132,14 @@ int main(void)
         return -1;
     }
 
-	printf(PRINT_PREF KGRN "PASSED " KNRM "GET operation (Get Keys 1->65)\n");
+	printf(PRINT_PREF KGRN "PASSED " KNRM "GET operation (Get Keys 1->576)\n");
 
 
     /************************ Update test *******************************/
 
 	printf("\n\n\n" PRINT_PREF "*********Testing Update operation:\n");
-    printf(PRINT_PREF "Updatring Keys 1->65\n"); 
-    for (i = 1; i < 65; i++) {
+    printf(PRINT_PREF "Updatring Keys 1->576\n"); 
+    for (i = 1; i < 576; i++) {
 		char key[128], val[128];
 		sprintf(key, "key%d", i);
 		sprintf(val, "val%d_updated", i);
@@ -158,13 +150,13 @@ int main(void)
         printf(PRINT_PREF "Failed Update. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF KGRN "PASSED: " KNRM "Update operation (Update Keys 1->65)\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Update operation (Update Keys 1->576)\n");
 
 
     /************************ Delete test *******************************/
 	printf("\n\n\n" PRINT_PREF "*********Testing del:\n");
-    printf(PRINT_PREF "Deleting Keys 1->65\n");
-    for (i = 1; i < 65; i++) {
+    printf(PRINT_PREF "Deleting Keys 1->576\n");
+    for (i = 1; i < 576; i++) {
 		char key[128];
 		sprintf(key, "key%d", i);
 		errors += test_delete(key);
@@ -174,7 +166,7 @@ int main(void)
         printf(PRINT_PREF "Failed Delete. Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF KGRN "PASSED: " KNRM "Delete operation (Delete Keys 1->65)\n");
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Delete operation (Delete Keys 1->576)\n");
 
     /************************ Non-existing key test *******************************/
 
@@ -202,7 +194,7 @@ int main(void)
  
 	/* Fill the flash completely, note that we assume here a small partition
 	 * of 10 blocks, each containing 64 pages */
-	printf (PRINT_PREF "Insertion 0->633 (flash should be full after that)"
+	printf (PRINT_PREF "Insertion (flash should be full after that)"
 		", may take some time...\n");
 	fflush(stdout);
 	ret = 0;
@@ -357,16 +349,6 @@ int main(void)
 	ret = kvlib_format();
 	printf(PRINT_PREF "Formatting:\n");
 	printf(PRINT_PREF " returns: %d (should be 0)\n", ret);
-
-	/* Let's try to add a key/value again: */
-	ret = kvlib_set("key640", "val640");
-	printf(PRINT_PREF "Insert a key/val after formatting:\n");
-	printf(PRINT_PREF " returns: %d (should be 0)\n", ret);
-
-	/* get the value we just inserted */
-	ret = kvlib_get("key640", buffer);
-	printf(PRINT_PREF "Reading the val of key640:\n");
-	printf(PRINT_PREF " returns: %d, read: %s (should be val640)\n", ret, buffer);
 
 	return EXIT_SUCCESS;
 
