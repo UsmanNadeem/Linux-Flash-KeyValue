@@ -213,35 +213,36 @@ int read_from_flash_randomly(void)
 
 int main(int argc, char *argv[]) {
 
-for (int i = 0; i < 6; ++i)
+    int numIter = 8*4;
+for (int i = 0; i < numIter; ++i)
 {
     kvlib_format();
 
-    sleep(4);
+    sleep(2);
     write_to_flash_25();
 
     kvlib_format();
 
-    sleep(4);
+    sleep(2);
     write_to_flash_50();
 
     kvlib_format();
 
-    sleep(4);
+    sleep(2);
     write_to_flash_100();
 
-    sleep(4);
+    sleep(2);
     read_from_flash_sequentially();
 
-    sleep(4);
+    sleep(2);
     read_from_flash_randomly();
 }
     
-    printf ("[Write Performance] Time taken to write 25%% of the disk = %luus\n", timeW25/6);
-    printf ("[Write Performance] Time taken to write 50%% of the disk = %luus\n", timeW50/6);
-    printf ("[Write Performance] Time taken to write 100%% of the disk = %luus\n", timeW100/6);
-    printf ("[SEQ Read Performance] Time taken to read sequentially = %luus\n", timeRSeq/6);
-    printf ("[RANDOM Read Performance] Time taken to read randomly = %luus\n", timeRRand/6);
+    printf ("[Write Performance] Time taken to write 25%% of the disk = %luus\n", timeW25/numIter);
+    printf ("[Write Performance] Time taken to write 50%% of the disk = %luus\n", timeW50/numIter);
+    printf ("[Write Performance] Time taken to write 100%% of the disk = %luus\n", timeW100/numIter);
+    printf ("[SEQ Read Performance] Time taken to read sequentially = %luus\n", timeRSeq/numIter);
+    printf ("[RANDOM Read Performance] Time taken to read randomly = %luus\n", timeRRand/numIter);
 
 
     return 0;

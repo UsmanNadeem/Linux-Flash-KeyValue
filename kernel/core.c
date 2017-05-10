@@ -12,6 +12,8 @@
 #include "core.h"
 #include "device.h"
 
+#include <linux/time.h>
+
 #define PRINT_PREF KERN_INFO "[LKP_KV]: "
 #define GC_PREFIX PRINT_PREF "GARBAGE_COLLECTOR: "
 
@@ -44,6 +46,7 @@ int move_data(int, int, int, char *);
 int set_up_next_page_to_write(void);
 void update_key_val_metadata(char *, int, int);
 static int write_fs_metadata_func(void *); 
+void print_wearcount(void);
 
 lkp_kv_cfg config;
 int write_data_to_flash = 0;
@@ -62,6 +65,14 @@ MODULE_PARM_DESC(MTD_INDEX, "Index of target mtd partition");
  */
 static int __init lkp_kv_init(void)
 {
+
+	struct timespec ts;
+
+	getnstimeofday(&ts);
+
+	uint64_t time_in_micros_old = (1000000 * ts.tv_sec) + (ts.tv_nsec / 1000);
+
+
 	printk(PRINT_PREF "Loading... \n");
 
 	if (init_config(MTD_INDEX) != 0) {
@@ -75,6 +86,13 @@ static int __init lkp_kv_init(void)
 	}
     write_fs_metadata = kthread_run(write_fs_metadata_func, 
             NULL, "write_fs_metadata");
+
+    getnstimeofday(&ts);
+
+	uint64_t time_in_micros_new = (1000000 * ts.tv_sec) + (ts.tv_nsec / 1000) - time_in_micros_old;
+
+	printk(PRINT_PREF "Time to initialize %lluus\n", time_in_micros_new);
+
 	return 0;
 }
 
@@ -90,6 +108,7 @@ static void __exit lkp_kv_exit(void)
     }
     mutex_unlock(&metadata_write_mutex);
     kthread_stop(write_fs_metadata);
+    print_wearcount();
     printk(PRINT_PREF "Exiting ... \n");
 	device_exit();
 	destroy_config();
@@ -127,7 +146,7 @@ static int write_fs_metadata_func(void *data) {
         if (write_data_to_flash) {
             writeFSMetadata();
             write_data_to_flash = 0;
-            printk(PRINT_PREF "Writing metadata to Flash\n");
+            // printk(PRINT_PREF "Writing metadata to Flash\n");
         }
         mutex_unlock(&metadata_write_mutex);
         msleep(500);
@@ -1124,7 +1143,7 @@ int get_next_free_block()
 	int i;
 	uint64_t min_wipeCount;
 	uint64_t blockToChoose;
-	printk(PRINT_PREF "In get_next_free_block \n");
+	// printk(PRINT_PREF "In get_next_free_block \n");
 
 
 	// todo check if < 20 percent blocks are free then call garbage collect
@@ -1148,10 +1167,10 @@ int get_next_free_block()
 		}
 	}
 	if (config.blocks[blockToChoose].state == BLK_FREE) {
-		printk(PRINT_PREF "*************Chosen block = %llu \n", blockToChoose);
+		// printk(PRINT_PREF "*************Chosen block = %llu \n", blockToChoose);
 		return blockToChoose;
 	}
-	printk(PRINT_PREF "*************Chosen block = -1\n");
+	// printk(PRINT_PREF "*************Chosen block = -1\n");
 
 	/* If we get there, no free block left... */
 
@@ -1554,6 +1573,18 @@ void print_flash_state() {
         printk(PRINT_PREF "Invalid Pages: %d - ", config.blocks[i].invalid_pages);
         printk(PRINT_PREF "Free Pages: %llu - ", config.blocks[i].free_pages);
         printk(PRINT_PREF "Erase Count: %llu\n", config.blocks[i].wipeCount);
+    }
+}
+
+/**
+ * Print the wear count of every block
+ */
+void print_wearcount() {
+    int i;
+    printk(PRINT_PREF "Block: ID:Wearcount \n");
+    for (i = 1; i < config.nb_blocks; i++) {
+
+        printk(PRINT_PREF "%d:%llu\n", i, config.blocks[i].wipeCount);
     }
 }
 

@@ -512,69 +512,70 @@ int delete_flash_100(void)
 
 int main(int argc, char *argv[]) {
 
-for (int i = 0; i < 6; ++i)
+    int numIter = 12;
+for (int i = 0; i < numIter; ++i)
 {
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_25();
-    sleep(4);
+    sleep(2);
     read_from_flash_sequentially_25();
     update_flash_25();
-    sleep(4);
+    sleep(2);
     delete_flash_25();
 
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_50();
     read_from_flash_sequentially_50();
-    sleep(4);
+    sleep(2);
     update_flash_50();
-    sleep(4);
+    sleep(2);
     delete_flash_50();
 
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_75();
     read_from_flash_sequentially_75();
-    sleep(4);
+    sleep(2);
     update_flash_75();
-    sleep(4);
+    sleep(2);
     delete_flash_75();
 
     kvlib_format();
-    sleep(4);
+    sleep(2);
     write_to_flash_100();
     read_from_flash_sequentially_100();
-    sleep(4);
+    sleep(2);
     update_flash_100();
-    sleep(4);
+    sleep(2);
     delete_flash_100();
 }
 
 
     
-    printf ("[Performance] Time taken to write\t25%% of the disk = %luus\n", timeW25/6);
-    printf ("[Performance] Time taken to update\t25%% of the disk = %luus\n", timeU25/6);
-    printf ("[Performance] Time taken to read\t25%% of the disk = %luus\n", timeRead25/6);
-    printf ("[Performance] Time taken to delete\t25%% of the disk = %luus\n", del25/6);
+    printf ("[Performance] Time taken to write\t25%% of the disk = %luus\n", timeW25/numIter);
+    printf ("[Performance] Time taken to update\t25%% of the disk = %luus\n", timeU25/numIter);
+    printf ("[Performance] Time taken to read\t25%% of the disk = %luus\n", timeRead25/numIter);
+    printf ("[Performance] Time taken to delete\t25%% of the disk = %luus\n", del25/numIter);
 printf("\n");
 
-    printf ("[Performance] Time taken to write\t50%% of the disk = %luus\n", timeW50/6);
-    printf ("[Performance] Time taken to update\t50%% of the disk = %luus\n", timeU50/6);
-    printf ("[Performance] Time taken to read\t50%% of the disk = %luus\n", timeRead50/6);
-    printf ("[Performance] Time taken to delete\t50%% of the disk = %luus\n", del50/6);
+    printf ("[Performance] Time taken to write\t50%% of the disk = %luus\n", timeW50/numIter);
+    printf ("[Performance] Time taken to update\t50%% of the disk = %luus\n", timeU50/numIter);
+    printf ("[Performance] Time taken to read\t50%% of the disk = %luus\n", timeRead50/numIter);
+    printf ("[Performance] Time taken to delete\t50%% of the disk = %luus\n", del50/numIter);
 printf("\n");
 
-    printf ("[Performance] Time taken to write\t75%% of the disk = %luus\n", timeW75/6);
-    printf ("[Performance] Time taken to update\t75%% of the disk = %luus\n", timeU75/6);
-    printf ("[Performance] Time taken to read\t75%% of the disk = %luus\n", timeRead75/6);
-    printf ("[Performance] Time taken to delete\t75%% of the disk = %luus\n", del75/6);
+    printf ("[Performance] Time taken to write\t75%% of the disk = %luus\n", timeW75/numIter);
+    printf ("[Performance] Time taken to update\t75%% of the disk = %luus\n", timeU75/numIter);
+    printf ("[Performance] Time taken to read\t75%% of the disk = %luus\n", timeRead75/numIter);
+    printf ("[Performance] Time taken to delete\t75%% of the disk = %luus\n", del75/numIter);
 printf("\n");
 
-    printf ("[Performance] Time taken to write\t100%% of the disk = %luus\n", timeW100/6);
-    printf ("[Performance] Time taken to update\t100%% of the disk = %luus\n", timeU100/6);
-    printf ("[Performance] Time taken to read\t100%% of the disk = %luus\n", timeRead100/6);
-    printf ("[Performance] Time taken to delete\t100%% of the disk = %luus\n", del100/6);
+    printf ("[Performance] Time taken to write\t100%% of the disk = %luus\n", timeW100/numIter);
+    printf ("[Performance] Time taken to update\t100%% of the disk = %luus\n", timeU100/numIter);
+    printf ("[Performance] Time taken to read\t100%% of the disk = %luus\n", timeRead100/numIter);
+    printf ("[Performance] Time taken to delete\t100%% of the disk = %luus\n", del100/numIter);
 printf("\n");
 
 
