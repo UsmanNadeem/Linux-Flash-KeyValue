@@ -213,7 +213,7 @@ int read_from_flash_randomly(void)
 
 int main(int argc, char *argv[]) {
 
-    int numIter = 8*4;
+    int numIter = 25;
 for (int i = 0; i < numIter; ++i)
 {
     kvlib_format();

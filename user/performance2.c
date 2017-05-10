@@ -512,7 +512,7 @@ int delete_flash_100(void)
 
 int main(int argc, char *argv[]) {
 
-    int numIter = 12;
+    int numIter = 11;
 for (int i = 0; i < numIter; ++i)
 {
     kvlib_format();
