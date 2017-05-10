@@ -43,7 +43,7 @@ void update_flash_randomly(int numIter)
     for (int j = 0; j < numIter; ++j) {
         int i;
 
-        printf("\n\n\n [RANDOM Update] Iter: %d/%d\n", j, numIter);
+        printf("[RANDOM Update] Iter: %d/%d\n", j+1, numIter);
 
         for (i = 1; i < (PAGES_PER_BLOCK * NUM_BLOCKS * 4 / 5) + 1; i++) {
             int randNum = rand() % (PAGES_PER_BLOCK * NUM_BLOCKS * 4 / 5) + 1;
