@@ -2,7 +2,7 @@ kvlib.o
 testbench
 cscope.out
 tags
-testbench_modif
+testbench_kvfs
 test_write_persistence
 performance
 performance2
