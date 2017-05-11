@@ -371,7 +371,6 @@ int initialize_firsttime(int mtd_index)
 	/* Semaphore initialized to 1 (available) */
 	sema_init(&config.format_lock, 1);
 
-	print_config();
 
 
 	/* metadata initialization */
@@ -418,8 +417,9 @@ int initialize_firsttime(int mtd_index)
 	for (i=0, j = 0; j < numPages;) {
 		j += config.pages_per_block;
 		i += 1;
+		config.metadata_blocks++;
 	}
-	config.metadata_blocks = i;
+	//config.metadata_blocks = i;
 	config.current_block = config.metadata_blocks;
 	config.blocks[config.metadata_blocks].state = BLK_USED;
 
@@ -436,6 +436,10 @@ int initialize_firsttime(int mtd_index)
     mutex_lock(&metadata_write_mutex);
     write_data_to_flash = 1;
     mutex_unlock(&metadata_write_mutex);
+
+	print_config();
+	print_wearcount();
+	
 	return 0;
 }
 
@@ -1554,7 +1558,7 @@ void print_config()
 	printk(PRINT_PREF "block_size: %d\n", config.block_size);
 	printk(PRINT_PREF "page_size: %d\n", config.page_size);
 	printk(PRINT_PREF "pages_per_block: %d\n", config.pages_per_block);
-	printk(PRINT_PREF "metadata_blocks: %d\n", config.metadata_blocks);
+	printk(PRINT_PREF "metadata_blocks: %u\n", config.metadata_blocks);
 	printk(PRINT_PREF "read_only: %d\n", config.read_only);
 }
 
@@ -1580,7 +1584,7 @@ void print_flash_state() {
 void print_wearcount() {
     int i;
     printk(PRINT_PREF "Block: ID:Wearcount \n");
-    for (i = 1; i < config.nb_blocks; i++) {
+    for (i = config.metadata_blocks; i < config.nb_blocks; i++) {
 
         printk(PRINT_PREF "%d:%llu\n", i, config.blocks[i].wipeCount);
     }
