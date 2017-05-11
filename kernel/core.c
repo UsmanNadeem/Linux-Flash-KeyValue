@@ -686,6 +686,10 @@ int delete(directory_entry *entry)
     entry->state = KEY_DELETED;
     config.blocks[entry->block].pages_states[entry->page_offset] = PG_DELETED;
     config.blocks[entry->block].invalid_pages++;
+    mutex_lock(&metadata_write_mutex);
+    write_data_to_flash = 1;
+    mutex_unlock(&metadata_write_mutex);
+
     if (config.read_only) {
         config.invoke_gc = 1;
         config.read_only = 0;
