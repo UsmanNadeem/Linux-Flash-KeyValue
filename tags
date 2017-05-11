@@ -11,9 +11,11 @@ CC	user/Makefile	/^CC=gcc$/;"	m
 CFLAGS	user/Makefile	/^CFLAGS=-Wall -Werror$/;"	m
 DEVICE_NAME	kernel/device.h	14;"	d
 Fops	kernel/device.c	/^struct file_operations Fops = {$/;"	v	typeref:struct:file_operations
-IOCTL_FORMAT	kernel/device.h	37;"	d
+IOCTL_DEL	kernel/device.h	37;"	d
+IOCTL_FORMAT	kernel/device.h	39;"	d
 IOCTL_GET	kernel/device.h	35;"	d
 IOCTL_SET	kernel/device.h	36;"	d
+IOCTL_UPDATE	kernel/device.h	38;"	d
 KERN_DIR	kernel/Makefile	/^KERN_DIR=~\/Desktop\/VM\/linux-4.0.9$/;"	m
 KEY_DELETED	kernel/core.h	/^	KEY_DELETED,$/;"	e	enum:__anon3
 KEY_VALID	kernel/core.h	/^	KEY_VALID$/;"	e	enum:__anon3
@@ -22,7 +24,7 @@ LDFLAGS	user/Makefile	/^LDFLAGS=$/;"	m
 LKP_KV_DEVICE_H	kernel/device.h	6;"	d
 LKP_KV_H	kernel/core.h	6;"	d
 MAJOR_NUM	kernel/device.h	11;"	d
-MAX_KEYS	kernel/core.h	/^	unsigned long long int MAX_KEYS;$/;"	m	struct:__anon7
+MAX_KEYS	kernel/core.h	/^	uint64_t MAX_KEYS;$/;"	m	struct:__anon7
 MTD_INDEX	kernel/core.c	/^int MTD_INDEX = -1;$/;"	v
 PG_DELETED	kernel/core.h	/^	PG_DELETED$/;"	e	enum:__anon2
 PG_FREE	kernel/core.h	/^	PG_FREE,$/;"	e	enum:__anon2
@@ -40,7 +42,7 @@ current_block	kernel/core.h	/^	int current_block;	\/* current flash block we wri
 current_page_offset	kernel/core.h	/^	int current_page_offset;	\/* index of the next flash page to write in the current block *\/$/;"	m	struct:__anon7
 del_keyval	kernel/core.c	/^int del_keyval(const char *key)$/;"	f
 delete	kernel/core.c	/^int delete(directory_entry *entry)$/;"	f
-destroy_config	kernel/core.c	/^void destroy_config(void)$/;"	f
+destroy_config	kernel/core.c	/^void destroy_config(void)  \/\/todo fix$/;"	f
 device_exit	kernel/device.c	/^void device_exit(void)$/;"	f
 device_init	kernel/device.c	/^int device_init(void)$/;"	f
 device_ioctl	kernel/device.c	/^static long device_ioctl(struct file *file, unsigned int ioctl_num,$/;"	f	file:
@@ -59,16 +61,18 @@ get_next_free_block	kernel/core.c	/^int get_next_free_block()$/;"	f
 get_next_page_index_to_write	kernel/core.c	/^int get_next_page_index_to_write()$/;"	f
 hash	kernel/core.c	/^static __u32 hash( const char* name) {$/;"	f	file:
 init_config	kernel/core.c	/^int init_config(int mtd_index)$/;"	f
-init_scan	kernel/core.c	/^int init_scan()$/;"	f
+initialize_firsttime	kernel/core.c	/^int initialize_firsttime(int mtd_index)$/;"	f
 key	kernel/device.h	/^	char *key;$/;"	m	struct:__anon8
 keyHash	kernel/core.h	/^	__u32 keyHash; $/;"	m	struct:__anon5
 key_exists	kernel/core.c	/^directory_entry *key_exists(const char *key)$/;"	f
 key_len	kernel/device.h	/^	int key_len;$/;"	m	struct:__anon8
 key_state	kernel/core.h	/^} key_state;$/;"	t	typeref:enum:__anon3
 keyval	kernel/device.h	/^} keyval;$/;"	t	typeref:struct:__anon8
+kvlib_del	user/kvlib.c	/^int kvlib_del(const char *key)$/;"	f
 kvlib_format	user/kvlib.c	/^int kvlib_format()$/;"	f
 kvlib_get	user/kvlib.c	/^int kvlib_get(const char *key, char *value)$/;"	f
 kvlib_set	user/kvlib.c	/^int kvlib_set(const char *key, const char *value)$/;"	f
+kvlib_update	user/kvlib.c	/^int kvlib_update(const char *key, const char *value)$/;"	f
 list	kernel/core.h	/^	directory_entry* list;	\/\/ todo size == MAX_numkeys == Total numPages$/;"	m	struct:__anon6
 lkp_kv_cfg	kernel/core.h	/^} lkp_kv_cfg;$/;"	t	typeref:struct:__anon7
 lkp_kv_exit	kernel/core.c	/^module_exit(lkp_kv_exit);$/;"	v
@@ -87,6 +91,7 @@ pages_per_block	kernel/core.h	/^	int pages_per_block;	\/* number of flash pages 
 pages_states	kernel/core.h	/^	page_state *pages_states;$/;"	m	struct:__anon4
 print_config	kernel/core.c	/^void print_config()$/;"	f
 prototype-objs	kernel/Makefile	/^prototype-objs := core.o device.o$/;"	m
+readFSMetadata	kernel/core.c	/^int readFSMetadata(int mtd_index) {$/;"	f
 read_only	kernel/core.h	/^	int read_only;		\/* are we in read-only mode? *\/$/;"	m	struct:__anon7
 read_page	kernel/core.c	/^int read_page(int page_index, char *buf)$/;"	f
 set_keyval	kernel/core.c	/^int set_keyval(const char *key, const char *val)$/;"	f

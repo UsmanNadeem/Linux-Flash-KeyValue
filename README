@@ -38,4 +38,10 @@ Performance Testing:
                                         for write, read, update and delete at
                                         25%, 50%, 75% and 100% capacity of the 
                                         flash storage.
+  (Launch using: ./performance2)
 
+
+====================
+
+The script copy_to_vm.sh can be used to transfer all the required files to the VM
+for testing.
