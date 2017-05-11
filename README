@@ -29,6 +29,7 @@ Here is the list of test files and their functionalities.
 
 Performance Testing:
 ====================
+All parameters (incl block size) are hardcoded in the files.
 
 1. performance.c                ==>     Measures time taken for write (25%, 50% and
                                         100% of the disk), sequential_read and 
