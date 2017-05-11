@@ -249,7 +249,7 @@ int main(void)
             sprintf(key, "key%d", i * 65 + j);
             sprintf(val, "val%d", i * 65 + j);
             errors += test_set(key, val, 0);
-           // errors += test_get(key, val);
+            errors += test_get(key, val, 0);
             if (j < (2 * i + 1)){
                 //printf(PRINT_PREF "Deleting Key: %s\n", key);
                 errors += test_delete(key);
@@ -342,7 +342,8 @@ int main(void)
                 "Errors = %d\n", errors);
         return -1;
     }
-    printf(PRINT_PREF KGRN "PASSED: " KNRM "Deletes freed up some space." 
+    printf(PRINT_PREF KGRN "PASSED: " KNRM "Garbage collector freed up some" 
+            " space as a result of these delete operations." 
             " Writes are now successfull. Flash is full again\n");
 
 
